@@ -130,7 +130,7 @@
     return /^[A-Z]{2}\d{10}$/.test(cleaned) && !!PREFIX_LOOKUP[cleaned.substring(0, 2)];
   }
 
-  window.WexGridRef = {
+  window.DefraGridRef = {
     coordsToGridRef: coordsToGridRef,
     gridRefToCoords: gridRefToCoords,
     isValidGridRef: isValidGridRef

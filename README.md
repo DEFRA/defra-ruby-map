@@ -71,14 +71,14 @@ The container reads configuration from `data-` attributes:
 - `data-center` — default center as `lng,lat` (default: `-1.5,52.5`)
 - `data-zoom` — default zoom level (default: `6`)
 
-### WexGridRef
+### DefraGridRef
 
 Grid reference conversion utilities:
 
 ```javascript
-WexGridRef.coordsToGridRef(lng, lat)   // => "ST 58132 72695" or null
-WexGridRef.gridRefToCoords("ST 58132 72695")  // => [lng, lat] or null
-WexGridRef.isValidGridRef("ST 58132 72695")   // => true
+DefraGridRef.coordsToGridRef(lng, lat)   // => "ST 58132 72695" or null
+DefraGridRef.gridRefToCoords("ST 58132 72695")  // => [lng, lat] or null
+DefraGridRef.isValidGridRef("ST 58132 72695")   // => true
 ```
 
 ## Updating vendored assets

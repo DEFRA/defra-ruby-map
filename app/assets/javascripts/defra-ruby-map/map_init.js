@@ -3,7 +3,7 @@
 // and optionally wires bidirectional sync with a grid reference field.
 //
 // Dependencies: defra.InteractiveMap, defra.maplibreProvider, defra.interactPlugin,
-//   defra.searchPlugin, proj4, WexGridRef (all loaded per-page via script tags)
+//   defra.searchPlugin, proj4, DefraGridRef (all loaded per-page via script tags)
 
 (function () {
   "use strict";
@@ -46,8 +46,8 @@
     var zoom = parseInt(container.getAttribute("data-zoom") || DEFAULT_ZOOM, 10);
 
     var initialGridRef = container.getAttribute("data-initial-grid-reference");
-    if (initialGridRef && typeof WexGridRef !== "undefined" && WexGridRef.isValidGridRef(initialGridRef)) {
-      var coords = WexGridRef.gridRefToCoords(initialGridRef);
+    if (initialGridRef && typeof DefraGridRef !== "undefined" && DefraGridRef.isValidGridRef(initialGridRef)) {
+      var coords = DefraGridRef.gridRefToCoords(initialGridRef);
       if (coords) {
         center = coords;
         zoom = 15;
@@ -86,7 +86,7 @@
       }
     }, true);
 
-    if (options.gridRefFieldId && typeof WexGridRef !== "undefined") {
+    if (options.gridRefFieldId && typeof DefraGridRef !== "undefined") {
       var field = document.getElementById(options.gridRefFieldId);
       if (field) { wireGridRefSync(interactiveMap, field); }
     }
@@ -101,7 +101,7 @@
 
     interactiveMap.on("interact:markerchange", function (event) {
       if (!event || !event.coords) { return; }
-      var gridRef = WexGridRef.coordsToGridRef(event.coords[0], event.coords[1]);
+      var gridRef = DefraGridRef.coordsToGridRef(event.coords[0], event.coords[1]);
       if (!gridRef) { return; }
       programmaticUpdate = true;
       field.value = gridRef;
@@ -118,8 +118,8 @@
         if (programmaticUpdate) { programmaticUpdate = false; return; }
         if (!mapInstance) { return; }
         var value = field.value;
-        if (!WexGridRef.isValidGridRef(value)) { return; }
-        var coords = WexGridRef.gridRefToCoords(value);
+        if (!DefraGridRef.isValidGridRef(value)) { return; }
+        var coords = DefraGridRef.gridRefToCoords(value);
         if (!coords) { return; }
         mapInstance.flyTo({ center: coords, zoom: 15 });
       }, 300);

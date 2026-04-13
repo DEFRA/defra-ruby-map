@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
 
   s.metadata["rubygems_mfa_required"] = "true"
 
-  s.files = Dir["{lib,vendor}/**/*", "LICENSE", "Rakefile", "README.md"]
+  s.files = Dir["{app,lib,vendor}/**/*", "LICENSE", "Rakefile", "README.md"]
   s.required_ruby_version = ">= 3.2"
 
   s.add_dependency "rails", ">= 7.0"

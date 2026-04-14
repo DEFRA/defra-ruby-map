@@ -107,19 +107,19 @@
       var lng = event.coords[0];
       var lat = event.coords[1];
 
-      // Immediately show raw grid reference (optimistic UX)
       var rawGridRef = DefraGridRef.coordsToGridRef(lng, lat);
       if (!rawGridRef) { return; }
-      field.value = rawGridRef;
 
-      // If proxy available, look up nearest registered address
+      // If proxy available, wait for nearest address lookup before updating field
       if (proxyUrl) {
-        // Convert to easting/northing for the nearest endpoint
         var en = DefraGridRef.coordsToEastingNorthing(lng, lat);
-        if (!en) { return; }
+        if (!en) { field.value = rawGridRef; return; }
 
         var controller = new AbortController();
-        var timeoutId = setTimeout(function () { controller.abort(); }, 2000);
+        var timeoutId = setTimeout(function () {
+          controller.abort();
+          field.value = rawGridRef; // Timeout fallback
+        }, 2000);
 
         fetch(proxyUrl + "/nearest-proxy?easting=" + Math.round(en[0]) + "&northing=" + Math.round(en[1]), { signal: controller.signal })
           .then(function (response) { return response.json(); })
@@ -129,16 +129,18 @@
               var result = data.results[0].DPA || data.results[0].LPI;
               if (result && result.X_COORDINATE && result.Y_COORDINATE) {
                 var nearestGridRef = DefraGridRef.eastingNorthingToGridRef(result.X_COORDINATE, result.Y_COORDINATE);
-                if (nearestGridRef) {
-                  field.value = nearestGridRef;
-                }
+                field.value = nearestGridRef || rawGridRef;
+                return;
               }
             }
+            field.value = rawGridRef; // No results fallback
           })
           .catch(function () {
             clearTimeout(timeoutId);
-            // Keep raw grid reference on failure
+            field.value = rawGridRef; // Error fallback
           });
+      } else {
+        field.value = rawGridRef; // No proxy fallback
       }
     });
 

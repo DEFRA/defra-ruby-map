@@ -27,7 +27,7 @@ module DefraRubyMap
     private
 
     def api_key
-      DefraRubyMap.configuration.os_api_key
+      DefraRubyMap.configuration.os_places_api_key
     end
 
     def proxy_get(base_url, params)

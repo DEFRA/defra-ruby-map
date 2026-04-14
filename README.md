@@ -25,7 +25,7 @@ Configure the OS API key in an initializer:
 ```ruby
 # config/initializers/defra_ruby_map.rb
 DefraRubyMap.configure do |config|
-  config.os_api_key = ENV.fetch("OS_MAP_API_KEY", nil)
+  config.os_places_api_key = ENV.fetch("OS_PLACES_API_KEY", nil)
 end
 ```
 

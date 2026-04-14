@@ -111,10 +111,15 @@
     return [easting, northing];
   }
 
-  function coordsToGridRef(lng, lat) {
+  function coordsToEastingNorthing(lng, lat) {
     if (typeof proj4 === "undefined") { return null; }
-    var osgb = proj4("EPSG:4326", OSGB36, [lng, lat]);
-    return eastingNorthingToGridRef(osgb[0], osgb[1]);
+    return proj4("EPSG:4326", OSGB36, [lng, lat]);
+  }
+
+  function coordsToGridRef(lng, lat) {
+    var en = coordsToEastingNorthing(lng, lat);
+    if (!en) { return null; }
+    return eastingNorthingToGridRef(en[0], en[1]);
   }
 
   function gridRefToCoords(gridRef) {
@@ -133,6 +138,8 @@
   window.DefraGridRef = {
     coordsToGridRef: coordsToGridRef,
     gridRefToCoords: gridRefToCoords,
-    isValidGridRef: isValidGridRef
+    isValidGridRef: isValidGridRef,
+    eastingNorthingToGridRef: eastingNorthingToGridRef,
+    coordsToEastingNorthing: coordsToEastingNorthing
   };
 })();

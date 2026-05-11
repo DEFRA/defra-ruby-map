@@ -52,6 +52,13 @@ module DefraRubyMap
         FileUtils.cp(file, public_dest.join("css", File.basename(file)))
       end
 
+      # Copy images
+      FileUtils.mkdir_p(public_dest.join("images"))
+      vendor_images = root.join("vendor", "assets", "images", "defra-ruby-map")
+      Dir[vendor_images.join("*")].each do |file|
+        FileUtils.cp(file, public_dest.join("images", File.basename(file)))
+      end
+
       FileUtils.touch(version_marker)
     end
   end

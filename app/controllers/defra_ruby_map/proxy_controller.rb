@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "cgi"
 require "net/http"
 
 module DefraRubyMap
@@ -10,34 +11,70 @@ module DefraRubyMap
     def geocode
       query = params[:query]
       return render(json: { error: "query parameter required" }, status: :bad_request) if query.blank?
-      return render(json: { error: "OS API key not configured" }, status: :service_unavailable) unless api_key.present?
+      return render(json: { error: "OS Maps API key not configured" }, status: :service_unavailable) unless os_maps_api_key.present?
 
-      proxy_get(OS_PLACES_FIND_URL, query: query, output_srs: "EPSG:4326", maxresults: 5, key: api_key)
+      proxy_get(OS_PLACES_FIND_URL, query: query, output_srs: "EPSG:4326", maxresults: 5, key: os_maps_api_key)
     end
 
     def nearest
       easting = params[:easting]
       northing = params[:northing]
       return render(json: { error: "easting and northing parameters required" }, status: :bad_request) if easting.blank? || northing.blank?
-      return render(json: { error: "OS API key not configured" }, status: :service_unavailable) unless api_key.present?
+      return render(json: { error: "OS Maps API key not configured" }, status: :service_unavailable) unless os_maps_api_key.present?
 
-      proxy_get(OS_PLACES_NEAREST_URL, point: "#{easting},#{northing}", key: api_key)
+      proxy_get(OS_PLACES_NEAREST_URL, point: "#{easting},#{northing}", key: os_maps_api_key)
+    end
+
+    def os_tiles
+      os_path = params[:os_path]
+      return render(json: { error: "path required" }, status: :bad_request) if os_path.blank?
+      return render(json: { error: "OS Maps API key not configured" }, status: :service_unavailable) unless os_maps_api_key.present?
+
+      segments = os_path.split("/")
+      allowed = os_path == "maps/vector/v1/vts" || os_path.start_with?("maps/vector/v1/vts/")
+      if segments.any? { |seg| seg == ".." || seg == "." } || !allowed
+        return render(json: { error: "invalid path" }, status: :bad_request)
+      end
+
+      query = request.query_parameters.except("os_path").merge("key" => os_maps_api_key)
+      encoded_path = segments.map { |seg| CGI.escape(seg).gsub("+", "%20") }.join("/")
+      uri = URI("https://api.os.uk/#{encoded_path}")
+      uri.query = URI.encode_www_form(query)
+
+      response = fetch_upstream(uri)
+      status_code = response.code.to_i
+      if status_code == 204
+        head :no_content
+      else
+        render body: response.body, status: status_code,
+               content_type: (response["Content-Type"] || "application/octet-stream")
+      end
+    rescue StandardError => e
+      Rails.logger.error("[DefraRubyMap] os_tiles upstream error: #{e.class}: #{e.message}")
+      render json: { error: "upstream tile service unavailable" }, status: :bad_gateway
     end
 
     private
 
-    def api_key
-      DefraRubyMap.configuration.os_places_api_key
+    def os_maps_api_key
+      DefraRubyMap.configuration.os_maps_api_key
     end
 
     def proxy_get(base_url, params)
       uri = URI(base_url)
       uri.query = URI.encode_www_form(params)
 
-      response = Net::HTTP.get_response(uri)
+      response = fetch_upstream(uri)
       render(json: response.body, status: response.code.to_i)
     rescue StandardError => e
       render(json: { error: e.message }, status: :bad_gateway)
+    end
+
+    def fetch_upstream(uri)
+      Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https",
+                      open_timeout: 5, read_timeout: 10) do |http|
+        http.request(Net::HTTP::Get.new(uri))
+      end
     end
   end
 end

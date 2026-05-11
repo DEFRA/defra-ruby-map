@@ -3,19 +3,37 @@
 // and optionally wires bidirectional sync with a grid reference field.
 //
 // Dependencies: defra.InteractiveMap, defra.maplibreProvider, defra.interactPlugin,
-//   defra.searchPlugin, DefraGridRef (all loaded per-page via script tags)
+//   defra.searchPlugin, defra.mapStylesPlugin, defra.scaleBarPlugin,
+//   DefraGridRef (all loaded per-page via script tags)
 
 (function () {
   "use strict";
 
   var DEFAULT_CENTER = [-1.5, 52.5];
   var DEFAULT_ZOOM = 6;
+  var GRID_REF_ZOOM = 15;
+
+  var OS_VTS_BASE = "https://raw.githubusercontent.com/OrdnanceSurvey/OS-Vector-Tile-API-Stylesheets/main/";
+
+  // Routes api.os.uk tile/glyph requests through the server-side proxy (key never reaches browser)
+  function makeTransformRequest(proxyUrl) {
+    var origin = window.location.origin;
+    return function (url) {
+      if (!proxyUrl || url.indexOf("https://api.os.uk/") !== 0) { return; }
+      var u = new URL(url);
+      u.searchParams.delete("key");
+      if (u.pathname.indexOf("/maps/vector/v1/vts") === 0 && !u.searchParams.has("srs")) {
+        u.searchParams.set("srs", "3857");
+      }
+      return { url: origin + proxyUrl + "/os-tiles-proxy" + u.pathname + u.search };
+    };
+  }
 
   function initMap(container, options) {
     if (typeof defra === "undefined" || typeof defra.InteractiveMap !== "function") { return null; }
 
     options = options || {};
-    var proxyUrl = container.getAttribute("data-proxy-url") || "";
+    var proxyUrl = (container.getAttribute("data-proxy-url") || "").replace(/\/$/, "");
     var center = (container.getAttribute("data-center") || "").split(",").map(Number);
     if (center.length !== 2 || isNaN(center[0])) { center = DEFAULT_CENTER; }
     var zoom = parseInt(container.getAttribute("data-zoom") || DEFAULT_ZOOM, 10);
@@ -25,7 +43,7 @@
       var coords = DefraGridRef.gridRefToCoords(initialGridRef);
       if (coords) {
         center = coords;
-        zoom = 15;
+        zoom = GRID_REF_ZOOM;
       }
     }
 
@@ -57,24 +75,67 @@
       }];
     }
 
+    var copyright = "Contains OS data \u00a9 Crown copyright and database rights " + new Date().getFullYear();
+    var imagesUrl = (container.getAttribute("data-images-url") || "").replace(/\/$/, "");
+    var plugins = [
+      defra.interactPlugin({ interactionModes: ["placeMarker"], closeOnAction: false }),
+      defra.searchPlugin(searchConfig)
+    ];
+    if (typeof defra.scaleBarPlugin === "function") {
+      plugins.push(defra.scaleBarPlugin({ units: "metric" }));
+    }
+
+    if (typeof defra.mapStylesPlugin === "function" && proxyUrl) {
+      plugins.push(defra.mapStylesPlugin({
+        mapStyles: [
+          {
+            id: "outdoor",
+            label: "Outdoor",
+            thumbnail: imagesUrl ? imagesUrl + "/outdoor-map-thumb.jpg" : undefined,
+            url: OS_VTS_BASE + "OS_VTS_3857_Outdoor.json",
+            attribution: copyright,
+            backgroundColor: "#f5f5f0"
+          },
+          {
+            id: "dark",
+            label: "Dark",
+            thumbnail: imagesUrl ? imagesUrl + "/dark-map-thumb.jpg" : undefined,
+            url: OS_VTS_BASE + "OS_VTS_3857_Dark.json",
+            mapColorScheme: "dark",
+            appColorScheme: "dark",
+            attribution: copyright
+          },
+          {
+            id: "black-and-white",
+            label: "Black/White",
+            thumbnail: imagesUrl ? imagesUrl + "/black-and-white-map-thumb.jpg" : undefined,
+            url: OS_VTS_BASE + "OS_VTS_3857_Black_and_White.json",
+            attribution: copyright
+          }
+        ]
+      }));
+    }
+
     var interactiveMap;
     try {
       interactiveMap = new defra.InteractiveMap(container.id, {
         behaviour: "inline",
         mapProvider: defra.maplibreProvider(),
+        plugins: plugins,
+        transformRequest: makeTransformRequest(proxyUrl),
         mapStyle: {
           url: "https://tiles.openfreemap.org/styles/liberty",
-          attribution: "OpenFreeMap &copy; OpenMapTiles Data from OpenStreetMap"
+          attribution: "OpenFreeMap \u00a9 OpenMapTiles Data from OpenStreetMap",
+          backgroundColor: "#f5f5f0"
         },
         center: center,
         zoom: zoom,
+        minZoom: 6,
+        maxZoom: 19,
+        maxBounds: [[-8.5, 49], [2, 61.5]],
         containerHeight: "400px",
         mapLabel: options.mapLabel || "Interactive map",
-        enableZoomControls: true,
-        plugins: [
-          defra.interactPlugin({ interactionModes: ["placeMarker"], closeOnAction: false }),
-          defra.searchPlugin(searchConfig)
-        ]
+        enableZoomControls: true
       });
     } catch (e) {
       return null;
@@ -100,6 +161,7 @@
 
   function wireGridRefSync(interactiveMap, field, proxyUrl) {
     var mapInstance = null;
+    var pendingController = null;
 
     // Map → field: nearest address lookup via proxy
     interactiveMap.on("interact:markerchange", function (event) {
@@ -110,21 +172,24 @@
       var rawGridRef = DefraGridRef.coordsToGridRef(lng, lat);
       if (!rawGridRef) { return; }
 
-      // If proxy available, wait for nearest address lookup before updating field
       if (proxyUrl) {
         var en = DefraGridRef.coordsToEastingNorthing(lng, lat);
         if (!en) { field.value = rawGridRef; return; }
 
-        var controller = new AbortController();
+        if (pendingController) { pendingController.abort(); }
+        pendingController = new AbortController();
+        var controller = pendingController;
         var timeoutId = setTimeout(function () {
+          if (controller.signal.aborted) { return; }
           controller.abort();
-          field.value = rawGridRef; // Timeout fallback
+          field.value = rawGridRef;
         }, 2000);
 
         fetch(proxyUrl + "/nearest-proxy?easting=" + Math.round(en[0]) + "&northing=" + Math.round(en[1]), { signal: controller.signal })
           .then(function (response) { return response.json(); })
           .then(function (data) {
             clearTimeout(timeoutId);
+            pendingController = null;
             if (data && data.results && data.results.length > 0) {
               var result = data.results[0].DPA || data.results[0].LPI;
               if (result && result.X_COORDINATE && result.Y_COORDINATE) {
@@ -133,14 +198,15 @@
                 return;
               }
             }
-            field.value = rawGridRef; // No results fallback
+            field.value = rawGridRef;
           })
           .catch(function () {
             clearTimeout(timeoutId);
-            field.value = rawGridRef; // Error fallback
+            pendingController = null;
+            if (!controller.signal.aborted) { field.value = rawGridRef; }
           });
       } else {
-        field.value = rawGridRef; // No proxy fallback
+        field.value = rawGridRef;
       }
     });
 
@@ -156,7 +222,7 @@
       if (!DefraGridRef.isValidGridRef(value)) { return; }
       var coords = DefraGridRef.gridRefToCoords(value);
       if (!coords) { return; }
-      mapInstance.flyTo({ center: coords, zoom: 15 });
+      mapInstance.flyTo({ center: coords, zoom: GRID_REF_ZOOM });
     });
   }
 

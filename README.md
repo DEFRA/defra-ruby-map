@@ -20,12 +20,16 @@ gem "defra_ruby_map"
 
 ## Configuration
 
-Configure the OS API key in an initializer:
+Configure the OS API key in an initializer. The key must have access to these OS Data Hub APIs:
+
+- `https://api.os.uk/maps/vector/v1` — Vector tiles
+- `https://api.os.uk/search/places/v1/find` — Address search
+- `https://api.os.uk/search/places/v1/nearest` — Nearest address lookup
 
 ```ruby
 # config/initializers/defra_ruby_map.rb
 DefraRubyMap.configure do |config|
-  config.os_places_api_key = ENV.fetch("OS_PLACES_API_KEY", nil)
+  config.os_maps_api_key = ENV.fetch("OS_MAPS_API_KEY", nil)
 end
 ```
 
@@ -100,6 +104,7 @@ The gem provides two server-side proxy endpoints that add the OS API key to requ
 |----------|---------|
 | `GET /geocode-proxy?query=Bristol` | Search for addresses via OS Places API |
 | `GET /nearest-proxy?easting=530070&northing=180358` | Nearest address lookup for a clicked location |
+| `GET /os-tiles-proxy/*path` | Proxy for OS Maps vector tile requests (tiles, glyphs, TileJSON) |
 
 The OS API key is never exposed to the browser.
 
@@ -133,11 +138,11 @@ Host applications must allowlist these domains if a strict Content Security Poli
 
 | Directive | Domain | Reason |
 |-----------|--------|--------|
-| `connect-src` | `https://tiles.openfreemap.org` | Map tile data |
-| `img-src` | `data:` `blob:` `https://tiles.openfreemap.org` | Tile images, MapLibre internals |
+| `connect-src` | `https://raw.githubusercontent.com` | OS VTS style JSON and sprites |
+| `img-src` | `data:` `blob:` `https://raw.githubusercontent.com` | Sprite sheets, MapLibre internals |
 | `script-src` | `blob:` | MapLibre web workers |
 
-Note: OS API calls (`api.os.uk`) go through the server-side proxy, so no CSP entry is needed for them.
+Note: All OS API calls (`api.os.uk`) go through the server-side proxy (`/os-tiles-proxy`), so no CSP entry is needed for them.
 
 ## License
 

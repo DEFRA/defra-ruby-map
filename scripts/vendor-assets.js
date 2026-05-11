@@ -80,6 +80,42 @@ fs.copyFileSync(
 );
 console.log("  vendor/assets/stylesheets/defra-interactive-map/search-plugin.css");
 
+// Map styles plugin
+console.log("\nmap-styles-plugin:");
+copyFiles(
+  path.join(IM_ROOT, "plugins", "map-styles", "dist", "umd"),
+  path.join(JS_DEST, "map-styles-plugin"),
+  /\.js$/
+);
+fs.copyFileSync(
+  path.join(IM_ROOT, "plugins", "map-styles", "dist", "css", "index.css"),
+  path.join(CSS_DEST, "defra-interactive-map", "map-styles-plugin.css")
+);
+console.log("  vendor/assets/stylesheets/defra-interactive-map/map-styles-plugin.css");
+
+// Scale bar plugin
+console.log("\nscale-bar-plugin:");
+copyFiles(
+  path.join(IM_ROOT, "plugins", "scale-bar", "dist", "umd"),
+  path.join(JS_DEST, "scale-bar-plugin"),
+  /\.js$/
+);
+fs.copyFileSync(
+  path.join(IM_ROOT, "plugins", "scale-bar", "dist", "css", "index.css"),
+  path.join(CSS_DEST, "defra-interactive-map", "scale-bar-plugin.css")
+);
+console.log("  vendor/assets/stylesheets/defra-interactive-map/scale-bar-plugin.css");
+
+// Map thumbnail images (only the 3 style thumbnails used by mapStylesPlugin)
+console.log("\nmap images:");
+const IMG_DEST = path.join(ROOT, "vendor", "assets", "images", "defra-ruby-map");
+ensureDir(IMG_DEST);
+const MAP_THUMBS = ["outdoor-map-thumb.jpg", "dark-map-thumb.jpg", "black-and-white-map-thumb.jpg"];
+MAP_THUMBS.forEach(function (f) {
+  fs.copyFileSync(path.join(IM_ROOT, "assets", "images", f), path.join(IMG_DEST, f));
+  console.log("  " + path.relative(ROOT, path.join(IMG_DEST, f)));
+});
+
 // proj4js
 console.log("\nproj4js:");
 copyFiles(

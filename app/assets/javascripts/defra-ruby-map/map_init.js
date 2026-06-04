@@ -152,7 +152,9 @@
     }, true);
 
     if (options.gridRefFieldId && typeof DefraGridRef !== "undefined") {
-      var field = document.getElementById(options.gridRefFieldId);
+      // GOV.UK form builder appends "-error" to the field ID when validation fails
+      var field = document.getElementById(options.gridRefFieldId)
+        || document.getElementById(options.gridRefFieldId + "-error");
       if (field) { wireGridRefSync(interactiveMap, field, proxyUrl); }
     }
 

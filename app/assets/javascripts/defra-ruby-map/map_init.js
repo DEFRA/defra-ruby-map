@@ -215,12 +215,16 @@
       if (event && event.map) { mapInstance = event.map; }
     });
 
+    var GRIDREF_MARKER_ID = "grid-ref-pin";
+
     field.addEventListener("input", function () {
       if (!mapInstance) { return; }
       var value = field.value;
       if (!DefraGridRef.isValidGridRef(value)) { return; }
       var coords = DefraGridRef.gridRefToCoords(value);
       if (!coords) { return; }
+      interactiveMap.removeMarker(GRIDREF_MARKER_ID);
+      interactiveMap.addMarker(GRIDREF_MARKER_ID, coords);
       mapInstance.flyTo({ center: coords, zoom: GRID_REF_ZOOM });
     });
   }

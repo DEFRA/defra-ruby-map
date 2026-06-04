@@ -215,8 +215,7 @@
       if (event && event.map) { mapInstance = event.map; }
     });
 
-    // Field → map: listen on 'change' event (fires on blur/enter)
-    field.addEventListener("change", function () {
+    field.addEventListener("input", function () {
       if (!mapInstance) { return; }
       var value = field.value;
       if (!DefraGridRef.isValidGridRef(value)) { return; }

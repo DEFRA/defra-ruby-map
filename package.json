@@ -6,7 +6,7 @@
     "vendor": "node scripts/vendor-assets.js"
   },
   "dependencies": {
-    "@defra/interactive-map": "0.0.1-alpha",
+    "@defra/interactive-map": "^0.0.30-alpha",
     "proj4": "^2.12.1"
   }
 }

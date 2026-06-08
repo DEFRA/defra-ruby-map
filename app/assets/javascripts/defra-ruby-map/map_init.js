@@ -94,6 +94,8 @@
             thumbnail: imagesUrl ? imagesUrl + "/outdoor-map-thumb.jpg" : undefined,
             url: OS_VTS_BASE + "OS_VTS_3857_Outdoor.json",
             attribution: copyright,
+            logo: imagesUrl ? imagesUrl + "/os-logo-maps.svg" : undefined,
+            logoAltText: "Ordnance Survey",
             backgroundColor: "#f5f5f0"
           },
           {
@@ -103,14 +105,18 @@
             url: OS_VTS_BASE + "OS_VTS_3857_Dark.json",
             mapColorScheme: "dark",
             appColorScheme: "dark",
-            attribution: copyright
+            attribution: copyright,
+            logo: imagesUrl ? imagesUrl + "/os-logo-maps.svg" : undefined,
+            logoAltText: "Ordnance Survey"
           },
           {
             id: "black-and-white",
             label: "Black/White",
             thumbnail: imagesUrl ? imagesUrl + "/black-and-white-map-thumb.jpg" : undefined,
             url: OS_VTS_BASE + "OS_VTS_3857_Black_and_White.json",
-            attribution: copyright
+            attribution: copyright,
+            logo: imagesUrl ? imagesUrl + "/os-logo-maps.svg" : undefined,
+            logoAltText: "Ordnance Survey"
           }
         ]
       }));

@@ -106,7 +106,7 @@ fs.copyFileSync(
 );
 console.log("  vendor/assets/stylesheets/defra-interactive-map/scale-bar-plugin.css");
 
-// Map thumbnail images (only the 3 style thumbnails used by mapStylesPlugin)
+// Map thumbnail images and branding
 console.log("\nmap images:");
 const IMG_DEST = path.join(ROOT, "vendor", "assets", "images", "defra-ruby-map");
 ensureDir(IMG_DEST);
@@ -115,6 +115,11 @@ MAP_THUMBS.forEach(function (f) {
   fs.copyFileSync(path.join(IM_ROOT, "assets", "images", f), path.join(IMG_DEST, f));
   console.log("  " + path.relative(ROOT, path.join(IMG_DEST, f)));
 });
+// OS logo is manually sourced from https://github.com/OrdnanceSurvey/os-api-branding
+const OS_LOGO = path.join(IMG_DEST, "os-logo-maps.svg");
+if (fs.existsSync(OS_LOGO)) {
+  console.log("  " + path.relative(ROOT, OS_LOGO) + " (already present)");
+}
 
 // proj4js
 console.log("\nproj4js:");

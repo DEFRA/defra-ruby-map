@@ -48,7 +48,7 @@
     }
 
     // Configure search plugin — use proxy if available, otherwise no search
-    var searchConfig = { showMarker: false };
+    var searchConfig = { showMarker: true };
     if (proxyUrl) {
       searchConfig.customDatasets = [{
         name: "os-places",
@@ -175,10 +175,15 @@
   function wireGridRefSync(interactiveMap, field, proxyUrl) {
     var mapInstance = null;
     var pendingController = null;
+    var GRIDREF_MARKER_ID = "grid-ref-pin";
+    var SEARCH_MARKER_ID = "search";
+    var INTERACT_MARKER_ID = "location";
 
     // Map → field: nearest address lookup via proxy
     interactiveMap.on("interact:markerchange", function (event) {
       if (!event || !event.coords) { return; }
+      interactiveMap.removeMarker(GRIDREF_MARKER_ID);
+      interactiveMap.removeMarker(SEARCH_MARKER_ID);
       var lng = event.coords[0];
       var lat = event.coords[1];
 
@@ -228,8 +233,6 @@
       if (event && event.map) { mapInstance = event.map; }
     });
 
-    var GRIDREF_MARKER_ID = "grid-ref-pin";
-
     field.addEventListener("input", function () {
       if (!mapInstance) { return; }
       var value = field.value;
@@ -237,6 +240,8 @@
       var coords = DefraGridRef.gridRefToCoords(value);
       if (!coords) { return; }
       interactiveMap.removeMarker(GRIDREF_MARKER_ID);
+      interactiveMap.removeMarker(SEARCH_MARKER_ID);
+      interactiveMap.removeMarker(INTERACT_MARKER_ID);
       interactiveMap.addMarker(GRIDREF_MARKER_ID, coords);
       mapInstance.flyTo({ center: coords, zoom: GRID_REF_ZOOM });
     });

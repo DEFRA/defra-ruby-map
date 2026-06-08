@@ -77,8 +77,9 @@
 
     var copyright = "Contains OS data \u00a9 Crown copyright and database rights " + new Date().getFullYear();
     var imagesUrl = (container.getAttribute("data-images-url") || "").replace(/\/$/, "");
+    var interact = defra.interactPlugin({ interactionModes: ["placeMarker"], closeOnAction: false });
     var plugins = [
-      defra.interactPlugin({ interactionModes: ["placeMarker"], closeOnAction: false }),
+      interact,
       defra.searchPlugin(searchConfig)
     ];
     if (typeof defra.scaleBarPlugin === "function") {
@@ -94,7 +95,7 @@
             thumbnail: imagesUrl ? imagesUrl + "/outdoor-map-thumb.jpg" : undefined,
             url: OS_VTS_BASE + "OS_VTS_3857_Outdoor.json",
             attribution: copyright,
-            logo: imagesUrl ? imagesUrl + "/os-logo-maps.svg" : undefined,
+            logo: imagesUrl ? imagesUrl + "/os-logo.svg" : undefined,
             logoAltText: "Ordnance Survey",
             backgroundColor: "#f5f5f0"
           },
@@ -106,7 +107,7 @@
             mapColorScheme: "dark",
             appColorScheme: "dark",
             attribution: copyright,
-            logo: imagesUrl ? imagesUrl + "/os-logo-maps.svg" : undefined,
+            logo: imagesUrl ? imagesUrl + "/os-logo-white.svg" : undefined,
             logoAltText: "Ordnance Survey"
           },
           {
@@ -115,7 +116,7 @@
             thumbnail: imagesUrl ? imagesUrl + "/black-and-white-map-thumb.jpg" : undefined,
             url: OS_VTS_BASE + "OS_VTS_3857_Black_and_White.json",
             attribution: copyright,
-            logo: imagesUrl ? imagesUrl + "/os-logo-maps.svg" : undefined,
+            logo: imagesUrl ? imagesUrl + "/os-logo.svg" : undefined,
             logoAltText: "Ordnance Survey"
           }
         ]
@@ -148,6 +149,10 @@
     }
 
     container.classList.remove("govuk-!-display-none");
+
+    interactiveMap.on("map:ready", function () {
+      if (typeof interact.enable === "function") { interact.enable(); }
+    });
 
     // Prevent map buttons from submitting a parent form
     container.addEventListener("click", function (e) {

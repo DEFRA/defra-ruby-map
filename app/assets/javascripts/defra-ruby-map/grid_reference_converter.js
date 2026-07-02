@@ -50,6 +50,7 @@
     easting = Math.round(easting);
     northing = Math.round(northing);
 
+    if (!isFinite(easting) || !isFinite(northing)) { return null; }
     if (easting < 0 || northing < 0 || easting >= 1000000 || northing >= 1300000) {
       return null;
     }
@@ -85,28 +86,19 @@
   }
 
   function gridRefToEastingNorthing(gridRef) {
-    if (!gridRef) { return null; }
+    if (!gridRef || typeof gridRef !== "string") { return null; }
 
-    var parts = gridRef.trim().toUpperCase().split(/\s+/);
-    var prefix, eastingPart, northingPart;
+    // Normalise to two letters + ten digits, accepting exactly what
+    // isValidGridRef accepts regardless of whitespace grouping. Refs with
+    // fewer digits are rejected rather than mis-scaled to a wrong location.
+    var cleaned = gridRef.replace(/\s+/g, "").toUpperCase();
+    if (!/^[A-Z]{2}\d{10}$/.test(cleaned)) { return null; }
 
-    if (parts.length === 3) {
-      prefix = parts[0];
-      eastingPart = parts[1];
-      northingPart = parts[2];
-    } else if (parts.length === 1 && parts[0].length === 12) {
-      prefix = parts[0].substring(0, 2);
-      eastingPart = parts[0].substring(2, 7);
-      northingPart = parts[0].substring(7, 12);
-    } else {
-      return null;
-    }
-
-    var coords = PREFIX_LOOKUP[prefix];
+    var coords = PREFIX_LOOKUP[cleaned.substring(0, 2)];
     if (!coords) { return null; }
 
-    var easting = coords[1] * 100000 + parseInt(eastingPart, 10);
-    var northing = coords[0] * 100000 + parseInt(northingPart, 10);
+    var easting = coords[1] * 100000 + parseInt(cleaned.substring(2, 7), 10);
+    var northing = coords[0] * 100000 + parseInt(cleaned.substring(7, 12), 10);
 
     return [easting, northing];
   }

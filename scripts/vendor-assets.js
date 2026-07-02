@@ -45,7 +45,7 @@ console.log("defra-interactive-map (UMD):");
 copyFiles(
   path.join(IM_ROOT, "dist", "umd"),
   path.join(JS_DEST, "defra-interactive-map"),
-  /\.js$/
+  /\.js(\.LICENSE\.txt)?$/
 );
 
 console.log("\ndefra-interactive-map (CSS):");
@@ -56,7 +56,7 @@ console.log("\nmaplibre-provider:");
 copyFiles(
   path.join(IM_ROOT, "providers", "maplibre", "dist", "umd"),
   path.join(JS_DEST, "maplibre-provider"),
-  /\.js$/
+  /\.js(\.LICENSE\.txt)?$/
 );
 
 // Interact plugin (no separate CSS since v0.0.30)
@@ -64,7 +64,7 @@ console.log("\ninteract-plugin:");
 copyFiles(
   path.join(IM_ROOT, "plugins", "interact", "dist", "umd"),
   path.join(JS_DEST, "interact-plugin"),
-  /\.js$/
+  /\.js(\.LICENSE\.txt)?$/
 );
 
 // Search plugin
@@ -72,7 +72,7 @@ console.log("\nsearch-plugin:");
 copyFiles(
   path.join(IM_ROOT, "plugins", "search", "dist", "umd"),
   path.join(JS_DEST, "search-plugin"),
-  /\.js$/
+  /\.js(\.LICENSE\.txt)?$/
 );
 copyCss(path.join(IM_ROOT, "plugins", "search", "dist", "css", "index.css"), "search-plugin.css");
 
@@ -81,7 +81,7 @@ console.log("\nmap-styles-plugin:");
 copyFiles(
   path.join(IM_ROOT, "plugins", "beta", "map-styles", "dist", "umd"),
   path.join(JS_DEST, "map-styles-plugin"),
-  /\.js$/
+  /\.js(\.LICENSE\.txt)?$/
 );
 copyCss(path.join(IM_ROOT, "plugins", "beta", "map-styles", "dist", "css", "index.css"), "map-styles-plugin.css");
 
@@ -90,7 +90,7 @@ console.log("\nscale-bar-plugin:");
 copyFiles(
   path.join(IM_ROOT, "plugins", "beta", "scale-bar", "dist", "umd"),
   path.join(JS_DEST, "scale-bar-plugin"),
-  /\.js$/
+  /\.js(\.LICENSE\.txt)?$/
 );
 copyCss(path.join(IM_ROOT, "plugins", "beta", "scale-bar", "dist", "css", "index.css"), "scale-bar-plugin.css");
 
@@ -118,6 +118,11 @@ copyFiles(
   path.join(ROOT, "node_modules", "proj4", "dist"),
   path.join(JS_DEST, "proj4js"),
   /^proj4\.js$/
+);
+copyFiles(
+  path.join(ROOT, "node_modules", "proj4"),
+  path.join(JS_DEST, "proj4js"),
+  /^LICENSE\.md$/
 );
 
 console.log("\nDone.");

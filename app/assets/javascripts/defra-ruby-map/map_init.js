@@ -13,6 +13,36 @@
   var DEFAULT_ZOOM = 6;
   var GRID_REF_ZOOM = 15;
 
+  var HTML_ENTITIES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" };
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) { return HTML_ENTITIES[c]; });
+  }
+
+  // Maps OS Places API results to the search plugin's suggestion shape. The
+  // plugin renders `marked` via dangerouslySetInnerHTML, so the address text
+  // is HTML-escaped before the matched query is wrapped in <mark> — otherwise
+  // HTML in an OS address would execute (stored XSS).
+  function parseOsPlacesResults(data, query) {
+    if (!data || !data.results) { return []; }
+    var safeQuery = escapeHtml(query || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    var matcher = safeQuery ? new RegExp("(" + safeQuery + ")", "gi") : null;
+    return data.results.map(function (item) {
+      var record = item.DPA || item.LPI;
+      if (!record) { return null; }
+      var text = record.ADDRESS || "";
+      var safeText = escapeHtml(text);
+      var lng = record.LNG || 0;
+      var lat = record.LAT || 0;
+      return {
+        id: String(record.UPRN),
+        text: text,
+        marked: matcher ? safeText.replace(matcher, "<mark>$1</mark>") : safeText,
+        point: [lng, lat],
+        bounds: [lng - 0.005, lat - 0.005, lng + 0.005, lat + 0.005]
+      };
+    }).filter(Boolean);
+  }
+
   // The vendored OS styles reference their sprite sheet by absolute URL (MapLibre
   // only fetches sprites for absolute URLs); this reroutes it to the local copy.
   var OS_SPRITE_URL_PREFIX = /^https:\/\/raw\.githubusercontent\.com\/OrdnanceSurvey\/OS-Vector-Tile-API-Stylesheets\/[^/]+\/OS_VTS_3857\/resources\/sprites\//;
@@ -35,10 +65,18 @@
     };
   }
 
-  function initMap(container, options) {
-    if (typeof defra === "undefined" || typeof defra.InteractiveMap !== "function") { return null; }
+  function reportError(options, message, error) {
+    if (typeof console !== "undefined" && console.error) { console.error("defra-ruby-map: " + message, error); }
+    if (options && typeof options.onError === "function") { options.onError(error); }
+  }
 
+  function initMap(container, options) {
     options = options || {};
+    if (typeof defra === "undefined" || typeof defra.InteractiveMap !== "function") {
+      reportError(options, "interactive map bundle not loaded (defra.InteractiveMap missing)");
+      return null;
+    }
+
     var proxyUrl = (container.getAttribute("data-proxy-url") || "").replace(/\/$/, "");
     var center = (container.getAttribute("data-center") || "").split(",").map(Number);
     if (center.length !== 2 || isNaN(center[0])) { center = DEFAULT_CENTER; }
@@ -70,25 +108,7 @@
       searchConfig.customDatasets = [{
         name: "os-places",
         urlTemplate: proxyUrl + "/geocode-proxy?query={query}",
-        parseResults: function (data, query) {
-          if (!data || !data.results) { return []; }
-          return data.results.map(function (item) {
-            var record = item.DPA || item.LPI;
-            if (!record) { return null; }
-            var text = record.ADDRESS || "";
-            var escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-            var marked = text.replace(new RegExp("(" + escaped + ")", "gi"), "<mark>$1</mark>");
-            var lng = record.LNG || 0;
-            var lat = record.LAT || 0;
-            return {
-              id: String(record.UPRN),
-              text: text,
-              marked: marked,
-              point: [lng, lat],
-              bounds: [lng - 0.005, lat - 0.005, lng + 0.005, lat + 0.005]
-            };
-          }).filter(Boolean);
-        }
+        parseResults: parseOsPlacesResults
       }];
     }
 
@@ -169,22 +189,29 @@
         enableZoomControls: true
       });
     } catch (e) {
+      reportError(options, "map initialisation failed", e);
       return null;
     }
 
     container.classList.remove("govuk-!-display-none");
 
+    // Plugin buttons render without a type attribute, which makes them submit
+    // buttons inside a parent form: pressing Enter in a field could activate one
+    // instead of submitting. Force type="button" at render time and as controls
+    // appear, not just on click (a click is too late for keyboard submission).
+    function fixButtonTypes() {
+      var buttons = container.querySelectorAll("button:not([type])");
+      for (var i = 0; i < buttons.length; i++) { buttons[i].setAttribute("type", "button"); }
+    }
+
     interactiveMap.on("map:ready", function () {
       if (typeof interact.enable === "function") { interact.enable(); }
+      fixButtonTypes();
     });
 
-    // Prevent map buttons from submitting a parent form
-    container.addEventListener("click", function (e) {
-      var button = e.target.closest("button");
-      if (button && !button.getAttribute("type")) {
-        button.setAttribute("type", "button");
-      }
-    }, true);
+    if (typeof MutationObserver === "function") {
+      new MutationObserver(fixButtonTypes).observe(container, { childList: true, subtree: true });
+    }
 
     if (options.gridRefFieldId && typeof DefraGridRef !== "undefined") {
       // GOV.UK form builder appends "-error" to the field ID when validation fails
@@ -231,7 +258,11 @@
           .then(function (response) { return response.json(); })
           .then(function (data) {
             clearTimeout(timeoutId);
-            pendingController = null;
+            // Only clear the shared controller if it is still ours; a newer
+            // request may have replaced it, and nulling it would break the
+            // abort chain and let this stale response overwrite the field.
+            if (pendingController === controller) { pendingController = null; }
+            if (controller.signal.aborted) { return; }
             if (data && data.results && data.results.length > 0) {
               var result = data.results[0].DPA || data.results[0].LPI;
               if (result && result.X_COORDINATE && result.Y_COORDINATE) {
@@ -244,7 +275,7 @@
           })
           .catch(function () {
             clearTimeout(timeoutId);
-            pendingController = null;
+            if (pendingController === controller) { pendingController = null; }
             if (!controller.signal.aborted) { field.value = rawGridRef; }
           });
       } else {
@@ -271,5 +302,5 @@
     });
   }
 
-  window.DefraMap = { init: initMap };
+  window.DefraMap = { init: initMap, _internal: { escapeHtml: escapeHtml, parseOsPlacesResults: parseOsPlacesResults } };
 })();

@@ -67,7 +67,8 @@ module DefraRubyMap
       response = fetch_upstream(uri)
       render(json: response.body, status: response.code.to_i)
     rescue StandardError => e
-      render(json: { error: e.message }, status: :bad_gateway)
+      Rails.logger.error("[DefraRubyMap] #{action_name} upstream error: #{e.class}: #{e.message}")
+      render(json: { error: "upstream service unavailable" }, status: :bad_gateway)
     end
 
     def fetch_upstream(uri)

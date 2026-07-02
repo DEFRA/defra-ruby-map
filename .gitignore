@@ -1,1 +1,6 @@
 node_modules/
+Gemfile.lock
+*.gem
+spec/dummy/log/
+spec/dummy/tmp/
+spec/dummy/public/defra-ruby-map/

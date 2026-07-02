@@ -25,7 +25,7 @@ RSpec.describe "Nearest address proxy", type: :request do
         get "/map/nearest-proxy", params: { easting: "358901", northing: "171053" }.except(param.to_sym)
 
         expect(response).to have_http_status(:bad_request)
-        expect(WebMock).not_to have_requested(:get, %r{api\.os\.uk})
+        expect(WebMock).not_to have_requested(:get, /api\.os\.uk/)
       end
     end
 
@@ -35,20 +35,20 @@ RSpec.describe "Nearest address proxy", type: :request do
       get "/map/nearest-proxy", params: { easting: "1", northing: "1" }
 
       expect(response).to have_http_status(:service_unavailable)
-      expect(WebMock).not_to have_requested(:get, %r{api\.os\.uk})
+      expect(WebMock).not_to have_requested(:get, /api\.os\.uk/)
     end
 
     it "returns 502 with a generic body and logs when the upstream times out" do
       stub_request(:get, "https://api.os.uk/search/places/v1/nearest")
         .with(query: hash_including("key" => api_key))
         .to_timeout
-
-      expect(Rails.logger).to receive(:error).with(a_string_including("nearest upstream error"))
+      allow(Rails.logger).to receive(:error)
 
       get "/map/nearest-proxy", params: { easting: "1", northing: "1" }
 
       expect(response).to have_http_status(:bad_gateway)
-      expect(JSON.parse(response.body)["error"]).to eq("upstream service unavailable")
+      expect(response.parsed_body["error"]).to eq("upstream service unavailable")
+      expect(Rails.logger).to have_received(:error).with(a_string_including("nearest upstream error"))
     end
   end
 end

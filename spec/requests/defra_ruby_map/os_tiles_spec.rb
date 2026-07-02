@@ -53,7 +53,7 @@ RSpec.describe "OS tiles proxy", type: :request do
         get "/map/os-tiles-proxy/maps/vector/v1/vts", params: { key: "attacker-key" }
 
         expect(stub).to have_been_requested.once
-        expect(WebMock).not_to have_requested(:get, %r{api\.os\.uk}).with(query: hash_including("key" => "attacker-key"))
+        expect(WebMock).not_to have_requested(:get, /api\.os\.uk/).with(query: hash_including("key" => "attacker-key"))
       end
 
       it "returns 204 with no body when upstream returns 204" do
@@ -85,24 +85,24 @@ RSpec.describe "OS tiles proxy", type: :request do
         get "/map/os-tiles-proxy/maps/vector/v1/vts"
 
         expect(response).to have_http_status(:bad_gateway)
-        expect(JSON.parse(response.body)["error"]).to eq("upstream tile service unavailable")
+        expect(response.parsed_body["error"]).to eq("upstream tile service unavailable")
         expect(response.body).not_to include(api_key)
       end
     end
 
     context "with a disallowed path" do
       {
-        "a different OS API"        => "search/places/v1/find",
-        "a prefix bypass"           => "maps/vector/v1/vtsx/tile/1/1/1.pbf",
-        "a parent-dir traversal"    => "maps/vector/v1/vts/../../../search/places/v1/find",
-        "an encoded traversal"      => "maps/vector/v1/vts/%2e%2e/%2e%2e/%2e%2e/search/places/v1/find",
-        "a current-dir segment"     => "maps/vector/v1/vts/./tile"
+        "a different OS API" => "search/places/v1/find",
+        "a prefix bypass" => "maps/vector/v1/vtsx/tile/1/1/1.pbf",
+        "a parent-dir traversal" => "maps/vector/v1/vts/../../../search/places/v1/find",
+        "an encoded traversal" => "maps/vector/v1/vts/%2e%2e/%2e%2e/%2e%2e/search/places/v1/find",
+        "a current-dir segment" => "maps/vector/v1/vts/./tile"
       }.each do |label, path|
         it "rejects #{label} without calling upstream" do
           get "/map/os-tiles-proxy/#{path}"
 
           expect(response.status).to be_between(400, 404)
-          expect(WebMock).not_to have_requested(:get, %r{api\.os\.uk})
+          expect(WebMock).not_to have_requested(:get, /api\.os\.uk/)
         end
       end
     end
@@ -114,7 +114,7 @@ RSpec.describe "OS tiles proxy", type: :request do
         get "/map/os-tiles-proxy/maps/vector/v1/vts"
 
         expect(response).to have_http_status(:service_unavailable)
-        expect(WebMock).not_to have_requested(:get, %r{api\.os\.uk})
+        expect(WebMock).not_to have_requested(:get, /api\.os\.uk/)
       end
     end
   end

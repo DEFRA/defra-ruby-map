@@ -14,7 +14,7 @@ RSpec.configure do |config|
 
   # The engine reads a single process-global configuration object; make each
   # example set its own key and restore the previous value afterwards.
-  config.around(:each) do |example|
+  config.around do |example|
     previous_key = DefraRubyMap.configuration.os_maps_api_key
     example.run
     DefraRubyMap.configuration.os_maps_api_key = previous_key

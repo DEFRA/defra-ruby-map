@@ -125,4 +125,65 @@ copyFiles(
   /^LICENSE\.md$/
 );
 
-console.log("\nDone.");
+// OS Vector Tile API stylesheets, pinned to a commit so upstream changes to
+// the main branch cannot alter production styling. Served to browsers from
+// public/defra-ruby-map/<version>/os-styles/ (the engine copies every
+// directory under vendor/assets/javascripts).
+const OS_STYLES_COMMIT = "618729210e8bbe3f75e7d2c4db3076c093d9f316"; // 2025-11-24
+const OS_STYLES_BASE =
+  `https://raw.githubusercontent.com/OrdnanceSurvey/OS-Vector-Tile-API-Stylesheets/${OS_STYLES_COMMIT}/`;
+const OS_STYLES = ["OS_VTS_3857_Outdoor.json", "OS_VTS_3857_Dark.json", "OS_VTS_3857_Black_and_White.json"];
+
+// Sprite sheets referenced by the styles (MapLibre fetches <base>.json/.png
+// and the @2x variants). map_init.js rewrites sprite requests to the local
+// copies; the pinned raw.githubusercontent URL remains only as a fallback.
+const OS_SPRITE_BASES = ["sprite", "dark", "greyscale"];
+const OS_SPRITE_EXTS = [".json", ".png", "@2x.json", "@2x.png"];
+const OS_SPRITES_PATH = "OS_VTS_3857/resources/sprites/";
+// The sprite field inside the stylesheets is hardcoded to the main branch,
+// regardless of which commit we download from.
+const OS_SPRITES_BASE_URL =
+  "https://raw.githubusercontent.com/OrdnanceSurvey/OS-Vector-Tile-API-Stylesheets/main/" + OS_SPRITES_PATH;
+
+async function download(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to download ${url}: HTTP ${response.status}`);
+  }
+  return Buffer.from(await response.arrayBuffer());
+}
+
+async function vendorOsStyles() {
+  console.log("\nOS VTS stylesheets (pinned to " + OS_STYLES_COMMIT.slice(0, 7) + "):");
+  const dest = path.join(JS_DEST, "os-styles");
+  ensureDir(dest);
+  for (const file of OS_STYLES) {
+    let body = (await download(OS_STYLES_BASE + file)).toString("utf8");
+    // Pin the sprite URL to the downloaded commit (the stylesheets hardcode
+    // the main branch). MapLibre only fetches sprites for an absolute URL, so
+    // this stays absolute; map_init.js's transformRequest reroutes it to the
+    // co-located vendored copy, keeping the request first-party. The pinned
+    // commit is defence-in-depth if that rerouting is ever bypassed.
+    body = body.replace(OS_SPRITES_BASE_URL, OS_STYLES_BASE + OS_SPRITES_PATH);
+    JSON.parse(body); // fail fast on a non-JSON (e.g. error page) response
+    fs.writeFileSync(path.join(dest, file), body);
+    console.log("  " + path.relative(ROOT, path.join(dest, file)));
+  }
+
+  const spritesDir = path.join(dest, "sprites");
+  ensureDir(spritesDir);
+  for (const base of OS_SPRITE_BASES) {
+    for (const ext of OS_SPRITE_EXTS) {
+      const file = base + ext;
+      fs.writeFileSync(path.join(spritesDir, file), await download(OS_STYLES_BASE + OS_SPRITES_PATH + file));
+      console.log("  " + path.relative(ROOT, path.join(spritesDir, file)));
+    }
+  }
+}
+
+vendorOsStyles()
+  .then(() => console.log("\nDone."))
+  .catch(err => {
+    console.error(err);
+    process.exitCode = 1;
+  });

@@ -8,6 +8,10 @@ module DefraRubyMap
     OS_PLACES_FIND_URL = "https://api.os.uk/search/places/v1/find"
     OS_PLACES_NEAREST_URL = "https://api.os.uk/search/places/v1/nearest"
     OS_TILES_ALLOWED_PREFIX = "maps/vector/v1/vts"
+    # Tiles/styles/fonts are static per OS release; without an explicit
+    # Cache-Control, Rails stamps "max-age=0, private" and every map view
+    # re-fetches tiles through this proxy and the OS API.
+    TILE_CACHE_CONTROL = "public, max-age=86400"
 
     before_action :require_api_key
 
@@ -66,12 +70,15 @@ module DefraRubyMap
 
     def render_tile_response(response)
       status_code = response.code.to_i
-      if status_code == 204
-        head :no_content
-      else
-        render body: response.body, status: status_code,
-               content_type: response["Content-Type"] || "application/octet-stream"
+      return head :no_content if status_code == 204
+
+      if status_code == 200
+        headers["Cache-Control"] = response["Cache-Control"] || TILE_CACHE_CONTROL
+        headers["ETag"] = response["ETag"] if response["ETag"]
+        headers["Expires"] = response["Expires"] if response["Expires"]
       end
+      render body: response.body, status: status_code,
+             content_type: response["Content-Type"] || "application/octet-stream"
     end
 
     def proxy_get(base_url, params)

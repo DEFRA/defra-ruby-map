@@ -13,12 +13,18 @@
   var DEFAULT_ZOOM = 6;
   var GRID_REF_ZOOM = 15;
 
-  var OS_VTS_BASE = "https://raw.githubusercontent.com/OrdnanceSurvey/OS-Vector-Tile-API-Stylesheets/main/";
+  // The vendored OS styles reference their sprite sheet by absolute URL (MapLibre
+  // only fetches sprites for absolute URLs); this reroutes it to the local copy.
+  var OS_SPRITE_URL_PREFIX = /^https:\/\/raw\.githubusercontent\.com\/OrdnanceSurvey\/OS-Vector-Tile-API-Stylesheets\/[^/]+\/OS_VTS_3857\/resources\/sprites\//;
 
-  // Routes api.os.uk tile/glyph requests through the server-side proxy (key never reaches browser)
-  function makeTransformRequest(proxyUrl) {
+  // Routes api.os.uk tile/glyph requests through the server-side proxy (key
+  // never reaches browser) and OS sprite requests to the vendored copies.
+  function makeTransformRequest(proxyUrl, stylesUrl) {
     var origin = window.location.origin;
     return function (url) {
+      if (stylesUrl && OS_SPRITE_URL_PREFIX.test(url)) {
+        return { url: origin + stylesUrl + "/sprites/" + url.replace(OS_SPRITE_URL_PREFIX, "") };
+      }
       if (!proxyUrl || url.indexOf("https://api.os.uk/") !== 0) { return; }
       var u = new URL(url);
       u.searchParams.delete("key");
@@ -88,6 +94,8 @@
 
     var copyright = "Contains OS data \u00a9 Crown copyright and database rights " + new Date().getFullYear();
     var imagesUrl = (container.getAttribute("data-images-url") || "").replace(/\/$/, "");
+    // Style JSONs are served from the same versioned asset root as the images
+    var stylesUrl = imagesUrl ? imagesUrl.replace(/\/images$/, "") + "/os-styles" : "";
     var interact = defra.interactPlugin({ interactionModes: ["placeMarker"] });
     var plugins = [
       interact,
@@ -97,41 +105,46 @@
       plugins.push(defra.scaleBarPlugin({ units: "metric" }));
     }
 
-    if (typeof defra.mapStylesPlugin === "function" && proxyUrl) {
-      plugins.push(defra.mapStylesPlugin({
-        mapStyles: [
-          {
-            id: "outdoor",
-            label: "Outdoor",
-            thumbnail: imagesUrl ? imagesUrl + "/outdoor-map-thumb.jpg" : undefined,
-            url: OS_VTS_BASE + "OS_VTS_3857_Outdoor.json",
-            attribution: copyright,
-            logo: imagesUrl ? imagesUrl + "/os-logo.svg" : undefined,
-            logoAltText: "Ordnance Survey",
-            backgroundColor: "#f5f5f0"
-          },
-          {
-            id: "dark",
-            label: "Dark",
-            thumbnail: imagesUrl ? imagesUrl + "/dark-map-thumb.jpg" : undefined,
-            url: OS_VTS_BASE + "OS_VTS_3857_Dark.json",
-            mapColorScheme: "dark",
-            appColorScheme: "dark",
-            attribution: copyright,
-            logo: imagesUrl ? imagesUrl + "/os-logo-white.svg" : undefined,
-            logoAltText: "Ordnance Survey"
-          },
-          {
-            id: "black-and-white",
-            label: "Black/White",
-            thumbnail: imagesUrl ? imagesUrl + "/black-and-white-map-thumb.jpg" : undefined,
-            url: OS_VTS_BASE + "OS_VTS_3857_Black_and_White.json",
-            attribution: copyright,
-            logo: imagesUrl ? imagesUrl + "/os-logo.svg" : undefined,
-            logoAltText: "Ordnance Survey"
-          }
-        ]
-      }));
+    // OS styles need both the tile proxy (for the API key) and the vendored
+    // style JSONs; without either, the map falls back to OpenFreeMap below.
+    var osMapStyles = null;
+    if (proxyUrl && stylesUrl) {
+      osMapStyles = [
+        {
+          id: "outdoor",
+          label: "Outdoor",
+          thumbnail: imagesUrl + "/outdoor-map-thumb.jpg",
+          url: stylesUrl + "/OS_VTS_3857_Outdoor.json",
+          attribution: copyright,
+          logo: imagesUrl + "/os-logo.svg",
+          logoAltText: "Ordnance Survey",
+          backgroundColor: "#f5f5f0"
+        },
+        {
+          id: "dark",
+          label: "Dark",
+          thumbnail: imagesUrl + "/dark-map-thumb.jpg",
+          url: stylesUrl + "/OS_VTS_3857_Dark.json",
+          mapColorScheme: "dark",
+          appColorScheme: "dark",
+          attribution: copyright,
+          logo: imagesUrl + "/os-logo-white.svg",
+          logoAltText: "Ordnance Survey"
+        },
+        {
+          id: "black-and-white",
+          label: "Black/White",
+          thumbnail: imagesUrl + "/black-and-white-map-thumb.jpg",
+          url: stylesUrl + "/OS_VTS_3857_Black_and_White.json",
+          attribution: copyright,
+          logo: imagesUrl + "/os-logo.svg",
+          logoAltText: "Ordnance Survey"
+        }
+      ];
+    }
+
+    if (typeof defra.mapStylesPlugin === "function" && osMapStyles) {
+      plugins.push(defra.mapStylesPlugin({ mapStyles: osMapStyles }));
     }
 
     var interactiveMap;
@@ -140,8 +153,8 @@
         behaviour: "inline",
         mapProvider: defra.maplibreProvider(),
         plugins: plugins,
-        transformRequest: makeTransformRequest(proxyUrl),
-        mapStyle: {
+        transformRequest: makeTransformRequest(proxyUrl, stylesUrl),
+        mapStyle: osMapStyles ? osMapStyles[0] : {
           url: "https://tiles.openfreemap.org/styles/liberty",
           attribution: "OpenFreeMap \u00a9 OpenMapTiles Data from OpenStreetMap",
           backgroundColor: "#f5f5f0"

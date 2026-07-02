@@ -67,7 +67,7 @@ RSpec.describe "OS tiles proxy", type: :request do
         expect(response.body).to be_empty
       end
 
-      it "passes upstream error statuses through" do
+      it "passes upstream error statuses through without marking them cacheable" do
         stub_request(:get, "https://api.os.uk/maps/vector/v1/vts")
           .with(query: { "key" => api_key })
           .to_return(status: 429, body: "quota exceeded")
@@ -75,6 +75,29 @@ RSpec.describe "OS tiles proxy", type: :request do
         get "/map/os-tiles-proxy/maps/vector/v1/vts"
 
         expect(response).to have_http_status(:too_many_requests)
+        expect(response.headers["Cache-Control"].to_s).not_to include("public")
+      end
+
+      it "forwards upstream cache headers on success" do
+        stub_request(:get, "https://api.os.uk/maps/vector/v1/vts")
+          .with(query: { "key" => api_key })
+          .to_return(status: 200, body: "{}",
+                     headers: { "Cache-Control" => "public, max-age=3600", "ETag" => '"abc123"' })
+
+        get "/map/os-tiles-proxy/maps/vector/v1/vts"
+
+        expect(response.headers["Cache-Control"]).to include("public").and include("max-age=3600")
+        expect(response.headers["ETag"]).to eq('"abc123"')
+      end
+
+      it "sets a default public Cache-Control when upstream sends none" do
+        stub_request(:get, "https://api.os.uk/maps/vector/v1/vts")
+          .with(query: { "key" => api_key })
+          .to_return(status: 200, body: "{}")
+
+        get "/map/os-tiles-proxy/maps/vector/v1/vts"
+
+        expect(response.headers["Cache-Control"]).to include("public").and include("max-age=86400")
       end
 
       it "returns 502 with a generic body when upstream times out" do

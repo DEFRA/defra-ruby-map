@@ -140,6 +140,7 @@
     gridRefToCoords: gridRefToCoords,
     isValidGridRef: isValidGridRef,
     eastingNorthingToGridRef: eastingNorthingToGridRef,
+    gridRefToEastingNorthing: gridRefToEastingNorthing,
     coordsToEastingNorthing: coordsToEastingNorthing
   };
 })();

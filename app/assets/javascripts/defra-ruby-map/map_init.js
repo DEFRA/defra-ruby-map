@@ -88,7 +88,7 @@
 
     var copyright = "Contains OS data \u00a9 Crown copyright and database rights " + new Date().getFullYear();
     var imagesUrl = (container.getAttribute("data-images-url") || "").replace(/\/$/, "");
-    var interact = defra.interactPlugin({ interactionModes: ["placeMarker"], closeOnAction: false });
+    var interact = defra.interactPlugin({ interactionModes: ["placeMarker"] });
     var plugins = [
       interact,
       defra.searchPlugin(searchConfig)

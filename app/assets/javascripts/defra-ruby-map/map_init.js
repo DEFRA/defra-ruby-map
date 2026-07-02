@@ -48,7 +48,18 @@
     }
 
     // Configure search plugin — use proxy if available, otherwise no search
-    var searchConfig = { showMarker: true };
+    // Manifest override shows the "Search" label next to the magnifying glass.
+    var searchConfig = {
+      showMarker: true,
+      manifest: {
+        controls: [{
+          id: "search",
+          mobile: { slot: "top-right", showLabel: true },
+          tablet: { slot: "top-left", showLabel: true },
+          desktop: { slot: "top-left", showLabel: true }
+        }]
+      }
+    };
     if (proxyUrl) {
       searchConfig.customDatasets = [{
         name: "os-places",

@@ -26,40 +26,19 @@ module DefraRubyMap
       end
     end
 
-    # Copy third-party UMD bundles and CSS to public/defra-ruby-map/<version>/
-    # Served as static files without Sprockets fingerprinting.
-    initializer :copy_defra_ruby_map_public_assets, after: :load_config_initializers do
-      public_dest = Rails.public_path.join("defra-ruby-map", DefraRubyMap::VERSION)
-      version_marker = public_dest.join(".installed")
+    # Serve the vendored bundles/CSS/images straight from the gem at
+    # /defra-ruby-map/<version>/... via a Rack middleware — no copy into the
+    # host app's public directory. Inserted before ActionDispatch::Static when
+    # static file serving is enabled so our versioned assets take precedence
+    # over any stale public/defra-ruby-map left by a previous gem version.
+    initializer :defra_ruby_map_asset_server do |app|
+      require "defra_ruby_map/asset_server"
 
-      next if version_marker.exist?
-
-      FileUtils.rm_rf(Rails.public_path.join("defra-ruby-map"))
-      FileUtils.mkdir_p(public_dest)
-
-      # Copy JS directories (preserving structure for dynamic chunks)
-      vendor_js = root.join("vendor", "assets", "javascripts")
-      Dir[vendor_js.join("*")].each do |dir|
-        next unless File.directory?(dir)
-
-        FileUtils.cp_r(dir, public_dest.join(File.basename(dir)))
+      if app.config.public_file_server.enabled
+        app.middleware.insert_before(ActionDispatch::Static, DefraRubyMap::AssetServer)
+      else
+        app.middleware.use(DefraRubyMap::AssetServer)
       end
-
-      # Copy CSS
-      FileUtils.mkdir_p(public_dest.join("css"))
-      vendor_css = root.join("vendor", "assets", "stylesheets")
-      Dir[vendor_css.join("**", "*.css")].each do |file|
-        FileUtils.cp(file, public_dest.join("css", File.basename(file)))
-      end
-
-      # Copy images
-      FileUtils.mkdir_p(public_dest.join("images"))
-      vendor_images = root.join("vendor", "assets", "images", "defra-ruby-map")
-      Dir[vendor_images.join("*")].each do |file|
-        FileUtils.cp(file, public_dest.join("images", File.basename(file)))
-      end
-
-      FileUtils.touch(version_marker)
     end
   end
 end

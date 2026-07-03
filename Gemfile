@@ -14,4 +14,5 @@ group :development, :test do
   gem "rubocop-rspec"
   gem "sprockets-rails"
   gem "webmock"
+  gem "webrick"
 end

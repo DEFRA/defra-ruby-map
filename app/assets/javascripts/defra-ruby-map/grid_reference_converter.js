@@ -40,12 +40,6 @@
     }
   }
 
-  function padLeft(num, length) {
-    var s = String(num);
-    while (s.length < length) { s = "0" + s; }
-    return s;
-  }
-
   function eastingNorthingToGridRef(easting, northing) {
     easting = Math.round(easting);
     northing = Math.round(northing);
@@ -55,17 +49,8 @@
       return null;
     }
 
-    var eastingStr = padLeft(easting, 6);
-    var northingStr = padLeft(northing, 6);
-
-    var gridEasting = parseInt(eastingStr.charAt(0), 10);
-    var gridNorthing;
-
-    if (northingStr.length >= 7) {
-      gridNorthing = parseInt(northingStr.substring(0, 2), 10);
-    } else {
-      gridNorthing = parseInt(northingStr.charAt(0), 10);
-    }
+    var gridEasting = Math.floor(easting / 100000);
+    var gridNorthing = Math.floor(northing / 100000);
 
     if (gridNorthing >= GRID.length || gridEasting >= GRID[0].length) {
       return null;
@@ -74,15 +59,9 @@
     var prefix = GRID[gridNorthing][gridEasting];
     if (!prefix) { return null; }
 
-    var shortEasting = eastingStr.substring(1);
-    var shortNorthing;
-    if (northingStr.length >= 7) {
-      shortNorthing = northingStr.substring(2);
-    } else {
-      shortNorthing = northingStr.substring(1);
-    }
-
-    return prefix + " " + shortEasting + " " + shortNorthing;
+    return prefix + " " +
+      String(easting % 100000).padStart(5, "0") + " " +
+      String(northing % 100000).padStart(5, "0");
   }
 
   function gridRefToEastingNorthing(gridRef) {

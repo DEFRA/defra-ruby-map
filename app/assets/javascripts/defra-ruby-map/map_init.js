@@ -223,12 +223,35 @@
     return interactiveMap;
   }
 
+  // Visually-hidden aria-live region so a screen-reader user hears when the map
+  // updates the grid reference field. Inline styles avoid depending on host CSS.
+  function createLiveRegion() {
+    var region = document.createElement("div");
+    region.setAttribute("role", "status");
+    region.setAttribute("aria-live", "polite");
+    region.style.cssText = "position:absolute;width:1px;height:1px;margin:-1px;padding:0;" +
+      "overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;";
+    return region;
+  }
+
   function wireGridRefSync(interactiveMap, field, proxyUrl) {
     var mapInstance = null;
     var pendingController = null;
     var GRIDREF_MARKER_ID = "grid-ref-pin";
     var SEARCH_MARKER_ID = "search";
     var INTERACT_MARKER_ID = "location";
+
+    var liveRegion = createLiveRegion();
+    (field.parentNode || document.body).appendChild(liveRegion);
+
+    // Writes a map-derived value into the field, tells host JS (validation,
+    // character count) via a "change" event, and announces it to assistive tech.
+    // A "change" event — not "input" — avoids re-triggering the field→map handler.
+    function setField(value) {
+      field.value = value;
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+      liveRegion.textContent = "Grid reference updated to " + value;
+    }
 
     // Map → field: nearest address lookup via proxy
     interactiveMap.on("interact:markerchange", function (event) {
@@ -243,7 +266,7 @@
 
       if (proxyUrl) {
         var en = DefraGridRef.coordsToEastingNorthing(lng, lat);
-        if (!en) { field.value = rawGridRef; return; }
+        if (!en) { setField(rawGridRef); return; }
 
         if (pendingController) { pendingController.abort(); }
         pendingController = new AbortController();
@@ -251,7 +274,7 @@
         var timeoutId = setTimeout(function () {
           if (controller.signal.aborted) { return; }
           controller.abort();
-          field.value = rawGridRef;
+          setField(rawGridRef);
         }, 2000);
 
         fetch(proxyUrl + "/nearest-proxy?easting=" + Math.round(en[0]) + "&northing=" + Math.round(en[1]), { signal: controller.signal })
@@ -267,19 +290,19 @@
               var result = data.results[0].DPA || data.results[0].LPI;
               if (result && result.X_COORDINATE && result.Y_COORDINATE) {
                 var nearestGridRef = DefraGridRef.eastingNorthingToGridRef(result.X_COORDINATE, result.Y_COORDINATE);
-                field.value = nearestGridRef || rawGridRef;
+                setField(nearestGridRef || rawGridRef);
                 return;
               }
             }
-            field.value = rawGridRef;
+            setField(rawGridRef);
           })
           .catch(function () {
             clearTimeout(timeoutId);
             if (pendingController === controller) { pendingController = null; }
-            if (!controller.signal.aborted) { field.value = rawGridRef; }
+            if (!controller.signal.aborted) { setField(rawGridRef); }
           });
       } else {
-        field.value = rawGridRef;
+        setField(rawGridRef);
       }
     });
 

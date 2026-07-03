@@ -306,6 +306,16 @@
       }
     });
 
+    // Search result selected: the plugin places its own "search" marker, so
+    // clear the map-click / typed markers and set the field to its location.
+    interactiveMap.on("search:match", function (event) {
+      if (!event || !event.point) { return; }
+      interactiveMap.removeMarker(GRIDREF_MARKER_ID);
+      interactiveMap.removeMarker(INTERACT_MARKER_ID);
+      var gridRef = DefraGridRef.coordsToGridRef(event.point[0], event.point[1]);
+      if (gridRef) { setField(gridRef); }
+    });
+
     // Capture underlying MapLibre instance for flyTo
     interactiveMap.on("map:ready", function (event) {
       if (event && event.map) { mapInstance = event.map; }
@@ -325,5 +335,8 @@
     });
   }
 
-  window.DefraMap = { init: initMap, _internal: { escapeHtml: escapeHtml, parseOsPlacesResults: parseOsPlacesResults } };
+  window.DefraMap = {
+    init: initMap,
+    _internal: { escapeHtml: escapeHtml, parseOsPlacesResults: parseOsPlacesResults, wireGridRefSync: wireGridRefSync }
+  };
 })();

@@ -12,18 +12,13 @@ module DefraRubyMap
       end
     end
 
-    # Register app/assets for Sprockets
-    initializer :append_defra_ruby_map_assets do |app|
-      app.config.assets.paths << root.join("app", "assets", "javascripts")
-    end
-
-    # Precompile only our own JS files (grid_reference_converter, map_init).
+    # sprockets-rails already appends this engine's app/assets/javascripts to
+    # the host's asset paths, so we only need to mark our own JS for precompile.
     initializer :precompile_defra_ruby_map_assets do |app|
-      js_root = root.join("app", "assets", "javascripts")
-
-      Dir[js_root.join("**", "*.js")].each do |file|
-        app.config.assets.precompile << Pathname.new(file).relative_path_from(js_root).to_s
-      end
+      app.config.assets.precompile += %w[
+        defra-ruby-map/grid_reference_converter.js
+        defra-ruby-map/map_init.js
+      ]
     end
 
     # Serve the vendored bundles/CSS/images straight from the gem at

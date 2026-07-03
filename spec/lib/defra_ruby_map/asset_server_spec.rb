@@ -38,7 +38,7 @@ RSpec.describe DefraRubyMap::AssetServer do
       expect(get("/defra-ruby-map/#{version}/proj4js/proj4.js").status).to eq(200)
     end
 
-    it "maps css/<name>.css to the flattened stylesheet" do
+    it "maps css/<name>.css to the vendored stylesheet" do
       res = get("/defra-ruby-map/#{version}/css/search-plugin.css")
 
       expect(res.status).to eq(200)

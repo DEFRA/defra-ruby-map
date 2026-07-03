@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require "rack"
-require "pathname"
-require "active_support/core_ext/enumerable"
 require "defra_ruby_map/version"
 
 module DefraRubyMap
@@ -14,7 +12,7 @@ module DefraRubyMap
   #
   # URL -> disk mapping (preserves the historical public-copy layout so consuming
   # apps need no change):
-  #   /defra-ruby-map/<v>/css/<name>.css -> vendor/assets/stylesheets/**/<name>.css
+  #   /defra-ruby-map/<v>/css/<name>.css -> vendor/assets/stylesheets/defra-interactive-map/<name>.css
   #   /defra-ruby-map/<v>/images/<name>  -> vendor/assets/images/defra-ruby-map/<name>
   #   /defra-ruby-map/<v>/<rest>         -> vendor/assets/javascripts/<rest>
   class AssetServer
@@ -26,7 +24,6 @@ module DefraRubyMap
       @app = app
       @prefix = "/defra-ruby-map/#{DefraRubyMap::VERSION}/"
       @files = Rack::Files.new(VENDOR_ROOT)
-      @css_index = build_css_index
     end
 
     def call(env)
@@ -53,17 +50,12 @@ module DefraRubyMap
       return nil if subpath.empty? || subpath.split("/").include?("..")
 
       if subpath.start_with?("css/")
-        file = @css_index[File.basename(Rack::Utils.unescape(subpath))]
-        file && Pathname.new(file).relative_path_from(Pathname.new(VENDOR_ROOT)).to_s
+        "stylesheets/defra-interactive-map/#{File.basename(subpath)}"
       elsif subpath.start_with?("images/")
         "images/defra-ruby-map/#{subpath.delete_prefix('images/')}"
       else
         "javascripts/#{subpath}"
       end
-    end
-
-    def build_css_index
-      Dir[File.join(VENDOR_ROOT, "stylesheets", "**", "*.css")].index_by { |file| File.basename(file) }
     end
   end
 end

@@ -17,6 +17,7 @@ module DefraRubyMap
     initializer :precompile_defra_ruby_map_assets do |app|
       app.config.assets.precompile += %w[
         defra-ruby-map/grid_reference_converter.js
+        defra-ruby-map/grid_ref_sync.js
         defra-ruby-map/map_init.js
       ]
     end

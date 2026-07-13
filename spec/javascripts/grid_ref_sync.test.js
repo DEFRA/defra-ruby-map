@@ -1,6 +1,7 @@
-// Tests for map_init.js's wireGridRefSync — the map <-> field sync wiring.
-// map_init.js is a browser IIFE; give it a window, a minimal document (for the
-// aria-live region), and load the real grid reference converter for conversions.
+// Tests for grid_ref_sync.js's DefraGridRefSync.wire — the map <-> field sync
+// wiring. grid_ref_sync.js is a browser IIFE; give it a window, a minimal
+// document (for the aria-live region), and load the real grid reference
+// converter for conversions.
 "use strict";
 
 const test = require("node:test");
@@ -21,10 +22,10 @@ global.window = global;
 global.document = { createElement: makeEl, body: { appendChild() {} } };
 global.proj4 = require(path.join(__dirname, "..", "..", "node_modules", "proj4"));
 require(path.join(__dirname, "..", "..", "app", "assets", "javascripts", "defra-ruby-map", "grid_reference_converter.js"));
-require(path.join(__dirname, "..", "..", "app", "assets", "javascripts", "defra-ruby-map", "map_init.js"));
+require(path.join(__dirname, "..", "..", "app", "assets", "javascripts", "defra-ruby-map", "grid_ref_sync.js"));
 
 const GridRef = global.DefraGridRef;
-const { wireGridRefSync } = global.DefraMap._internal;
+const wireGridRefSync = global.DefraGridRefSync.wire;
 
 // A stub InteractiveMap event emitter that records marker operations.
 function fakeMap() {

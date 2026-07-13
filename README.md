@@ -59,7 +59,7 @@ Add a map container to your view. `map_init.js` reads its configuration from `da
 </div>
 ```
 
-Load the assets. Reference the **vendored bundles, CSS and images** with the `defra_map_asset_path` helper (they are served by the engine, not the asset pipeline), and the **first-party JS** (`grid_reference_converter`, `map_init`) with `javascript_include_tag` (these go through Sprockets and are precompiled):
+Load the assets. Reference the **vendored bundles, CSS and images** with the `defra_map_asset_path` helper (they are served by the engine, not the asset pipeline), and the **first-party JS** (`grid_reference_converter`, `grid_ref_sync`, `map_init`) with `javascript_include_tag` (these go through Sprockets and are precompiled; load `map_init` last):
 
 ```erb
 <link rel="stylesheet" href="<%= defra_map_asset_path("css/interactive-map.css") %>" media="all" />
@@ -77,6 +77,7 @@ Load the assets. Reference the **vendored bundles, CSS and images** with the `de
 <script src="<%= defra_map_asset_path("scale-bar-plugin/index.js") %>"></script>
 
 <%= javascript_include_tag "defra-ruby-map/grid_reference_converter" %>
+<%= javascript_include_tag "defra-ruby-map/grid_ref_sync" %>
 <%= javascript_include_tag "defra-ruby-map/map_init" %>
 ```
 

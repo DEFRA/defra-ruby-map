@@ -56,7 +56,7 @@ module DefraRubyMap
     end
 
     def allowed_os_path?(os_path)
-      return false if os_path.split("/").any? { |seg| ["..", "."].include?(seg) }
+      return false if os_path.split("/").intersect?(["..", "."])
 
       os_path == OS_TILES_ALLOWED_PREFIX || os_path.start_with?("#{OS_TILES_ALLOWED_PREFIX}/")
     end

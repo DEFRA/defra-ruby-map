@@ -40,81 +40,53 @@
     }
   }
 
-  function padLeft(num, length) {
-    var s = String(num);
-    while (s.length < length) { s = "0" + s; }
-    return s;
-  }
-
   function eastingNorthingToGridRef(easting, northing) {
     easting = Math.round(easting);
     northing = Math.round(northing);
 
+    if (!isFinite(easting) || !isFinite(northing)) { return null; }
+    // The caps mirror GRID's extent: 10 x 13 hundred-km squares.
     if (easting < 0 || northing < 0 || easting >= 1000000 || northing >= 1300000) {
       return null;
     }
 
-    var eastingStr = padLeft(easting, 6);
-    var northingStr = padLeft(northing, 6);
-
-    var gridEasting = parseInt(eastingStr.charAt(0), 10);
-    var gridNorthing;
-
-    if (northingStr.length >= 7) {
-      gridNorthing = parseInt(northingStr.substring(0, 2), 10);
-    } else {
-      gridNorthing = parseInt(northingStr.charAt(0), 10);
-    }
-
-    if (gridNorthing >= GRID.length || gridEasting >= GRID[0].length) {
-      return null;
-    }
+    var gridEasting = Math.floor(easting / 100000);
+    var gridNorthing = Math.floor(northing / 100000);
 
     var prefix = GRID[gridNorthing][gridEasting];
-    if (!prefix) { return null; }
 
-    var shortEasting = eastingStr.substring(1);
-    var shortNorthing;
-    if (northingStr.length >= 7) {
-      shortNorthing = northingStr.substring(2);
-    } else {
-      shortNorthing = northingStr.substring(1);
-    }
-
-    return prefix + " " + shortEasting + " " + shortNorthing;
+    return prefix + " " +
+      String(easting % 100000).padStart(5, "0") + " " +
+      String(northing % 100000).padStart(5, "0");
   }
 
   function gridRefToEastingNorthing(gridRef) {
-    if (!gridRef) { return null; }
+    if (!gridRef || typeof gridRef !== "string") { return null; }
 
-    var parts = gridRef.trim().toUpperCase().split(/\s+/);
-    var prefix, eastingPart, northingPart;
+    // Normalise to two letters + ten digits, accepting exactly what
+    // isValidGridRef accepts regardless of whitespace grouping. Refs with
+    // fewer digits are rejected rather than mis-scaled to a wrong location.
+    var cleaned = gridRef.replace(/\s+/g, "").toUpperCase();
+    if (!/^[A-Z]{2}\d{10}$/.test(cleaned)) { return null; }
 
-    if (parts.length === 3) {
-      prefix = parts[0];
-      eastingPart = parts[1];
-      northingPart = parts[2];
-    } else if (parts.length === 1 && parts[0].length === 12) {
-      prefix = parts[0].substring(0, 2);
-      eastingPart = parts[0].substring(2, 7);
-      northingPart = parts[0].substring(7, 12);
-    } else {
-      return null;
-    }
-
-    var coords = PREFIX_LOOKUP[prefix];
+    var coords = PREFIX_LOOKUP[cleaned.substring(0, 2)];
     if (!coords) { return null; }
 
-    var easting = coords[1] * 100000 + parseInt(eastingPart, 10);
-    var northing = coords[0] * 100000 + parseInt(northingPart, 10);
+    var easting = coords[1] * 100000 + parseInt(cleaned.substring(2, 7), 10);
+    var northing = coords[0] * 100000 + parseInt(cleaned.substring(7, 12), 10);
 
     return [easting, northing];
   }
 
-  function coordsToGridRef(lng, lat) {
+  function coordsToEastingNorthing(lng, lat) {
     if (typeof proj4 === "undefined") { return null; }
-    var osgb = proj4("EPSG:4326", OSGB36, [lng, lat]);
-    return eastingNorthingToGridRef(osgb[0], osgb[1]);
+    return proj4("EPSG:4326", OSGB36, [lng, lat]);
+  }
+
+  function coordsToGridRef(lng, lat) {
+    var en = coordsToEastingNorthing(lng, lat);
+    if (!en) { return null; }
+    return eastingNorthingToGridRef(en[0], en[1]);
   }
 
   function gridRefToCoords(gridRef) {
@@ -133,6 +105,9 @@
   window.DefraGridRef = {
     coordsToGridRef: coordsToGridRef,
     gridRefToCoords: gridRefToCoords,
-    isValidGridRef: isValidGridRef
+    isValidGridRef: isValidGridRef,
+    eastingNorthingToGridRef: eastingNorthingToGridRef,
+    gridRefToEastingNorthing: gridRefToEastingNorthing,
+    coordsToEastingNorthing: coordsToEastingNorthing
   };
 })();

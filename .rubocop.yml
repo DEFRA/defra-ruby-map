@@ -1,0 +1,17 @@
+inherit_gem:
+  defra_ruby_style:
+    - default.yml
+
+plugins:
+  - rubocop-rails
+
+AllCops:
+  Exclude:
+    - "node_modules/**/*"
+    - "vendor/**/*"
+
+RSpec/MultipleExpectations:
+  Max: 5
+
+RSpec/ExampleLength:
+  Max: 15

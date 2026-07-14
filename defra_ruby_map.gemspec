@@ -13,11 +13,11 @@ Gem::Specification.new do |s|
   s.description = "Provides vendored assets for the DEFRA Interactive Map component, " \
                   "including MapLibre provider, search and interact plugins, " \
                   "proj4js coordinate conversion, and an OS grid reference converter."
-  s.license     = "The Open Government Licence (OGL) Version 3"
+  s.license     = "OGL-UK-3.0"
 
   s.metadata["rubygems_mfa_required"] = "true"
 
-  s.files = Dir["{app,lib,vendor}/**/*", "LICENSE", "Rakefile", "README.md"]
+  s.files = Dir["{app,config,lib,vendor}/**/*", "LICENSE", "Rakefile", "README.md"]
   s.required_ruby_version = ">= 3.2"
 
   s.add_dependency "rails", ">= 7.0"

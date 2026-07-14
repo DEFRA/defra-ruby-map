@@ -12,47 +12,29 @@ module DefraRubyMap
       end
     end
 
-    # Register app/assets for Sprockets
-    initializer :append_defra_ruby_map_assets do |app|
-      app.config.assets.paths << root.join("app", "assets", "javascripts")
-    end
-
-    # Precompile only our own JS files (grid_reference_converter, map_init).
+    # sprockets-rails already appends this engine's app/assets/javascripts to
+    # the host's asset paths, so we only need to mark our own JS for precompile.
     initializer :precompile_defra_ruby_map_assets do |app|
-      js_root = root.join("app", "assets", "javascripts")
-
-      Dir[js_root.join("**", "*.js")].each do |file|
-        app.config.assets.precompile << Pathname.new(file).relative_path_from(js_root).to_s
-      end
+      app.config.assets.precompile += %w[
+        defra-ruby-map/grid_reference_converter.js
+        defra-ruby-map/grid_ref_sync.js
+        defra-ruby-map/map_init.js
+      ]
     end
 
-    # Copy third-party UMD bundles and CSS to public/defra-ruby-map/<version>/
-    # Served as static files without Sprockets fingerprinting.
-    initializer :copy_defra_ruby_map_public_assets, after: :load_config_initializers do
-      public_dest = Rails.public_path.join("defra-ruby-map", DefraRubyMap::VERSION)
-      version_marker = public_dest.join(".installed")
+    # Serve the vendored bundles/CSS/images straight from the gem at
+    # /defra-ruby-map/<version>/... via a Rack middleware — no copy into the
+    # host app's public directory. Inserted before ActionDispatch::Static when
+    # static file serving is enabled so our versioned assets take precedence
+    # over any stale public/defra-ruby-map left by a previous gem version.
+    initializer :defra_ruby_map_asset_server do |app|
+      require "defra_ruby_map/asset_server"
 
-      next if version_marker.exist?
-
-      FileUtils.rm_rf(Rails.public_path.join("defra-ruby-map"))
-      FileUtils.mkdir_p(public_dest)
-
-      # Copy JS directories (preserving structure for dynamic chunks)
-      vendor_js = root.join("vendor", "assets", "javascripts")
-      Dir[vendor_js.join("*")].each do |dir|
-        next unless File.directory?(dir)
-
-        FileUtils.cp_r(dir, public_dest.join(File.basename(dir)))
+      if app.config.public_file_server.enabled
+        app.middleware.insert_before(ActionDispatch::Static, DefraRubyMap::AssetServer)
+      else
+        app.middleware.use(DefraRubyMap::AssetServer)
       end
-
-      # Copy CSS
-      FileUtils.mkdir_p(public_dest.join("css"))
-      vendor_css = root.join("vendor", "assets", "stylesheets")
-      Dir[vendor_css.join("**", "*.css")].each do |file|
-        FileUtils.cp(file, public_dest.join("css", File.basename(file)))
-      end
-
-      FileUtils.touch(version_marker)
     end
   end
 end

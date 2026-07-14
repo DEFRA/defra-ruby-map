@@ -27,14 +27,16 @@ require(path.join(__dirname, "..", "..", "app", "assets", "javascripts", "defra-
 const GridRef = global.DefraGridRef;
 const wireGridRefSync = global.DefraGridRefSync.wire;
 
-// A stub InteractiveMap event emitter that records marker removals.
+// A stub InteractiveMap event emitter that records marker removals/additions.
 function fakeMap() {
   return {
     handlers: {},
     removed: [],
+    added: [],
     on(evt, cb) { (this.handlers[evt] = this.handlers[evt] || []).push(cb); },
     emit(evt, payload) { (this.handlers[evt] || []).forEach((cb) => cb(payload)); },
-    removeMarker(id) { this.removed.push(id); }
+    removeMarker(id) { this.removed.push(id); },
+    addMarker(id, coords) { this.added.push({ id: id, coords: coords }); }
   };
 }
 
@@ -96,6 +98,31 @@ test("map click (interact:markerchange) without a proxy sets the field and clear
   assert.ok(field.events.includes("change"));
   assert.ok(map.removed.includes("grid-ref-pin"));
   assert.ok(map.removed.includes("search"));
+});
+
+test("map:firstidle pins the field's pre-filled grid reference (bug: no marker on load)", () => {
+  const map = fakeMap();
+  const field = fakeField();
+  field.value = TQ;
+  wireGridRefSync(map, field, null);
+
+  map.emit("map:firstidle");
+
+  assert.equal(map.added.length, 1);
+  assert.equal(map.added[0].id, "grid-ref-pin");
+  assert.deepEqual(map.added[0].coords, TQ_POINT);
+});
+
+test("map:firstidle does not pin when the field is empty or invalid", () => {
+  const map = fakeMap();
+  const field = fakeField();
+  wireGridRefSync(map, field, null);
+
+  map.emit("map:firstidle");
+  field.value = "not a grid ref";
+  map.emit("map:firstidle");
+
+  assert.equal(map.added.length, 0);
 });
 
 test("wireGridRefSync adds a visually-hidden aria-live status region", () => {

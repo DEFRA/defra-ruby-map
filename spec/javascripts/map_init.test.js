@@ -40,20 +40,24 @@ test("DefraMap.init returns null and reports the bundle guard when the map bundl
   );
 });
 
-test("DefraMap.init returns the map instance with a working bundle", () => {
+test("DefraMap.init returns the map instance mounted on a dedicated child element", () => {
   const instance = { on() {} };
+  let mountedId;
   global.location = { origin: "https://host.example" };
+  global.document = { createElement() { return {}; } };
   global.defra = {
-    InteractiveMap: function () { return instance; },
+    InteractiveMap: function (id) { mountedId = id; return instance; },
     maplibreProvider() { return {}; },
     interactPlugin() { return {}; },
     searchPlugin() { return {}; }
   };
+  const appended = [];
   const container = {
     id: "map",
     getAttribute() { return null; },
     classList: { remove() {} },
-    querySelectorAll() { return []; }
+    querySelectorAll() { return []; },
+    appendChild(el) { appended.push(el); }
   };
   const errors = [];
   let result;
@@ -62,8 +66,15 @@ test("DefraMap.init returns the map instance with a working bundle", () => {
   } finally {
     delete global.defra;
     delete global.location;
+    delete global.document;
   }
 
   assert.equal(result, instance);
   assert.equal(errors.length, 0);
+  // The map must NOT mount on the container itself: InteractiveMap JSON-parses
+  // every data-* attribute of its mount element as config, and the container
+  // carries the gem's plain-string attributes (data-proxy-url etc.).
+  assert.equal(appended.length, 1);
+  assert.equal(appended[0].id, "map-map");
+  assert.equal(mountedId, "map-map");
 });

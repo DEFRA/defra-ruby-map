@@ -166,9 +166,16 @@
       plugins.push(defra.mapStylesPlugin({ mapStyles: osMapStyles }));
     }
 
+    // Mount on a dedicated child element: InteractiveMap JSON-parses every
+    // data-* attribute on its mount element, so it must not see the gem's
+    // plain-string attributes on the container.
+    const mapRoot = document.createElement("div");
+    mapRoot.id = container.id + "-map";
+    container.appendChild(mapRoot);
+
     var interactiveMap;
     try {
-      interactiveMap = new defra.InteractiveMap(container.id, {
+      interactiveMap = new defra.InteractiveMap(mapRoot.id, {
         behaviour: "inline",
         mapProvider: defra.maplibreProvider(),
         plugins: plugins,

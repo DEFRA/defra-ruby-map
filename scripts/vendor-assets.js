@@ -126,9 +126,9 @@ copyFiles(
 );
 
 // OS Vector Tile API stylesheets, pinned to a commit so upstream changes to
-// the main branch cannot alter production styling. Served to browsers from
-// public/defra-ruby-map/<version>/os-styles/ (the engine copies every
-// directory under vendor/assets/javascripts).
+// the main branch cannot alter production styling. Served to browsers at
+// /defra-ruby-map/<version>/os-styles/ straight from the gem by the
+// AssetServer middleware (like everything under vendor/assets/javascripts).
 const OS_STYLES_COMMIT = "618729210e8bbe3f75e7d2c4db3076c093d9f316"; // 2025-11-24
 const OS_STYLES_BASE =
   `https://raw.githubusercontent.com/OrdnanceSurvey/OS-Vector-Tile-API-Stylesheets/${OS_STYLES_COMMIT}/`;

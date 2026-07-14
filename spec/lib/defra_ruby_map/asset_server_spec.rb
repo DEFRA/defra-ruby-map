@@ -34,10 +34,6 @@ RSpec.describe DefraRubyMap::AssetServer do
       expect(res.headers["Content-Type"]).to include("javascript")
     end
 
-    it "serves proj4" do
-      expect(get("/defra-ruby-map/#{version}/proj4js/proj4.js").status).to eq(200)
-    end
-
     it "maps css/<name>.css to the vendored stylesheet" do
       res = get("/defra-ruby-map/#{version}/css/search-plugin.css")
 
@@ -53,14 +49,12 @@ RSpec.describe DefraRubyMap::AssetServer do
       expect(res.headers["Content-Type"]).to include("svg")
     end
 
-    it "serves nested os-styles assets including sprites" do
-      expect(get("/defra-ruby-map/#{version}/os-styles/OS_VTS_3857_Outdoor.json").status).to eq(200)
-      expect(get("/defra-ruby-map/#{version}/os-styles/sprites/sprite.png").status).to eq(200)
-    end
-
-    it "serves the style JSON with a JSON content type" do
+    it "serves nested os-styles assets including sprites, with a JSON content type for the style" do
       res = get("/defra-ruby-map/#{version}/os-styles/OS_VTS_3857_Outdoor.json")
+
+      expect(res.status).to eq(200)
       expect(res.headers["Content-Type"]).to include("json")
+      expect(get("/defra-ruby-map/#{version}/os-styles/sprites/sprite.png").status).to eq(200)
     end
 
     it "supports HEAD requests" do

@@ -46,13 +46,12 @@
       var lng = event.coords[0];
       var lat = event.coords[1];
 
-      var rawGridRef = DefraGridRef.coordsToGridRef(lng, lat);
+      var en = DefraGridRef.coordsToEastingNorthing(lng, lat);
+      if (!en) { return; }
+      var rawGridRef = DefraGridRef.eastingNorthingToGridRef(en[0], en[1]);
       if (!rawGridRef) { return; }
 
       if (proxyUrl) {
-        var en = DefraGridRef.coordsToEastingNorthing(lng, lat);
-        if (!en) { setField(rawGridRef); return; }
-
         if (pendingController) { pendingController.abort(); }
         pendingController = new AbortController();
         var controller = pendingController;

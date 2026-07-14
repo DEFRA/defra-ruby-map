@@ -63,7 +63,6 @@ Load the assets. Reference the **vendored bundles, CSS and images** with the `de
 
 ```erb
 <link rel="stylesheet" href="<%= defra_map_asset_path("css/interactive-map.css") %>" media="all" />
-<link rel="stylesheet" href="<%= defra_map_asset_path("css/interact-plugin.css") %>" media="all" />
 <link rel="stylesheet" href="<%= defra_map_asset_path("css/search-plugin.css") %>" media="all" />
 <link rel="stylesheet" href="<%= defra_map_asset_path("css/map-styles-plugin.css") %>" media="all" />
 <link rel="stylesheet" href="<%= defra_map_asset_path("css/scale-bar-plugin.css") %>" media="all" />
@@ -187,7 +186,7 @@ npm update           # update @defra/interactive-map and proj4
 npm run vendor       # copy the UMD bundles, CSS, images and pinned OS styles into vendor/assets/
 ```
 
-The `vendor/assets/` files are committed to git so the gem works without npm at install time. CI re-runs `npm run vendor` and fails if the committed output drifts from the locked package versions. The `app/assets/` files (grid reference converter, map initializer) are first-party code and are not touched by `npm run vendor`.
+The `vendor/assets/` files are committed to git so the gem works without npm at install time. CI re-runs `npm run vendor` and fails if the committed output drifts from the locked package versions. The `app/assets/` files are first-party code and are not touched by `npm run vendor`.
 
 ## Testing
 

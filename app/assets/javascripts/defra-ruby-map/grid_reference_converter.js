@@ -45,6 +45,7 @@
     northing = Math.round(northing);
 
     if (!isFinite(easting) || !isFinite(northing)) { return null; }
+    // The caps mirror GRID's extent: 10 x 13 hundred-km squares.
     if (easting < 0 || northing < 0 || easting >= 1000000 || northing >= 1300000) {
       return null;
     }
@@ -52,12 +53,7 @@
     var gridEasting = Math.floor(easting / 100000);
     var gridNorthing = Math.floor(northing / 100000);
 
-    if (gridNorthing >= GRID.length || gridEasting >= GRID[0].length) {
-      return null;
-    }
-
     var prefix = GRID[gridNorthing][gridEasting];
-    if (!prefix) { return null; }
 
     return prefix + " " +
       String(easting % 100000).padStart(5, "0") + " " +

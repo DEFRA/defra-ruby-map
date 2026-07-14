@@ -27,16 +27,14 @@ require(path.join(__dirname, "..", "..", "app", "assets", "javascripts", "defra-
 const GridRef = global.DefraGridRef;
 const wireGridRefSync = global.DefraGridRefSync.wire;
 
-// A stub InteractiveMap event emitter that records marker operations.
+// A stub InteractiveMap event emitter that records marker removals.
 function fakeMap() {
   return {
     handlers: {},
     removed: [],
-    added: [],
     on(evt, cb) { (this.handlers[evt] = this.handlers[evt] || []).push(cb); },
     emit(evt, payload) { (this.handlers[evt] || []).forEach((cb) => cb(payload)); },
-    removeMarker(id) { this.removed.push(id); },
-    addMarker(id) { this.added.push(id); }
+    removeMarker(id) { this.removed.push(id); }
   };
 }
 

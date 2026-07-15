@@ -105,6 +105,16 @@
       if (event && event.map) { mapInstance = event.map; }
     });
 
+    // Pin the field's pre-filled grid reference. "map:firstidle" is the
+    // earliest event at which markers project correctly — any sooner and the
+    // pin lands at pixel (0,0).
+    interactiveMap.on("map:firstidle", function () {
+      const value = field.value;
+      if (!DefraGridRef.isValidGridRef(value)) { return; }
+      const coords = DefraGridRef.gridRefToCoords(value);
+      if (coords) { interactiveMap.addMarker(GRIDREF_MARKER_ID, coords); }
+    });
+
     field.addEventListener("input", function () {
       if (!mapInstance) { return; }
       var value = field.value;

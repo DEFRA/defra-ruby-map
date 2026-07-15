@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@8e41b362d2589a22a44c1cfa214b3c83052c195b # v1.318.0
         with:
           ruby-version: "3.2"
           bundler-cache: true
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@8e41b362d2589a22a44c1cfa214b3c83052c195b # v1.318.0
         with:
           ruby-version: "3.2"
           bundler-cache: true
@@ -47,3 +47,33 @@ jobs:
       - run: npm run vendor
       # Fails if committed vendor/ files drift from what the locked package versions produce
       - run: git add -N vendor/ && git diff --exit-code -- vendor/
+
+  sonarcloud:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of sonarcloud analysis
+      - uses: ruby/setup-ruby@8e41b362d2589a22a44c1cfa214b3c83052c195b # v1.318.0
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # Generate the lint and coverage reports the scanner reads (see
+      # sonar-project.properties)
+      - run: bundle exec rubocop --format progress --format json --out rubocop-result.json
+      - run: bundle exec rspec
+      - run: npm ci
+      - run: npm run test:coverage
+      # The sonarcloud analysis runs in a docker container with the current
+      # folder mounted as /github/workspace, so rewrite the absolute paths in
+      # the coverage report to match (the lcov paths are already relative)
+      # https://community.sonarsource.com/t/code-coverage-doesnt-work-with-github-action/16747/6
+      - run: sed -i "s@${{ github.workspace }}@/github/workspace@g" coverage/coverage.json
+      - name: Analyze with SonarCloud
+        uses: sonarsource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Provided automatically by GitHub
+          SONAR_TOKEN: ${{ secrets.RUBY_SONAR_TOKEN }} # Needs to be set in the repo; settings -> secrets

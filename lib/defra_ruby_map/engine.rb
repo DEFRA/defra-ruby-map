@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "defra_ruby_map/asset_server"
+require "defra_ruby_map/map_helper"
+
 module DefraRubyMap
   class Engine < ::Rails::Engine
     isolate_namespace DefraRubyMap
@@ -7,7 +10,6 @@ module DefraRubyMap
     # Include the map helper in all views
     initializer :defra_ruby_map_helpers do
       ActiveSupport.on_load(:action_view) do
-        require "defra_ruby_map/map_helper"
         include DefraRubyMap::MapHelper
       end
     end
@@ -28,8 +30,6 @@ module DefraRubyMap
     # static file serving is enabled so our versioned assets take precedence
     # over any stale public/defra-ruby-map left by a previous gem version.
     initializer :defra_ruby_map_asset_server do |app|
-      require "defra_ruby_map/asset_server"
-
       if app.config.public_file_server.enabled
         app.middleware.insert_before(ActionDispatch::Static, DefraRubyMap::AssetServer)
       else

@@ -3,7 +3,9 @@
   "private": true,
   "description": "Manages vendored JS/CSS assets for the defra_ruby_map gem",
   "scripts": {
-    "vendor": "node scripts/vendor-assets.js"
+    "vendor": "node scripts/vendor-assets.js",
+    "test": "node --test \"spec/javascripts/**/*.test.js\"",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=\"app/assets/javascripts/**\" --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info \"spec/javascripts/**/*.test.js\""
   },
   "dependencies": {
     "@defra/interactive-map": "^0.0.33-alpha",

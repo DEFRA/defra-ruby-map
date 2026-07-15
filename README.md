@@ -192,7 +192,8 @@ The `vendor/assets/` files are committed to git so the gem works without npm at 
 
 ```bash
 bundle exec rspec                              # Ruby: engine, proxy and asset middleware
-node --test "spec/javascripts/**/*.test.js"    # JS: converter, search parsing and map/field sync
+npm test                                       # JS: converter, search parsing and map/field sync
+npm run test:coverage                          # JS tests plus lcov coverage report for SonarCloud
 bundle exec rubocop                            # lint
 ```
 

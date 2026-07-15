@@ -12,6 +12,7 @@ group :development, :test do
   gem "rubocop-rails"
   gem "rubocop-rake"
   gem "rubocop-rspec"
+  gem "simplecov", "~> 0.22.0", require: false
   gem "sprockets-rails"
   gem "webmock"
   gem "webrick"

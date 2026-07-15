@@ -6,35 +6,35 @@ on:
   pull_request:
 
 jobs:
-  rubocop:
+  tests-and-sonarcloud:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of sonarcloud analysis
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.2"
           bundler-cache: true
-      - run: bundle exec rubocop
-
-  rspec:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.2"
-          bundler-cache: true
-      - run: bundle exec rspec
-
-  javascript-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      # Run linting first. No point running the tests if there is a linting issue
+      - run: bundle exec rubocop --format progress --format json --out rubocop-result.json
+      # rspec also creates the coverage/ directory the JS lcov report is written into
+      - run: bundle exec rspec
       - run: npm ci
-      - run: node --test "spec/javascripts/**/*.test.js"
+      - run: npm run test:coverage
+      # The sonarcloud analysis runs in a docker container with the current
+      # folder mounted as /github/workspace, so rewrite the absolute paths in
+      # the coverage report to match (the lcov paths are already relative)
+      # https://community.sonarsource.com/t/code-coverage-doesnt-work-with-github-action/16747/6
+      - run: sed -i "s@${{ github.workspace }}@/github/workspace@g" coverage/coverage.json
+      - name: Analyze with SonarCloud
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Provided automatically by GitHub
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} # Needs to be set in the repo; settings -> secrets
 
   vendor-reproducibility:
     runs-on: ubuntu-latest

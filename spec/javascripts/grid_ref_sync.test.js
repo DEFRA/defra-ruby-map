@@ -137,3 +137,109 @@ test("wireGridRefSync adds a visually-hidden aria-live status region", () => {
   assert.equal(appended[0].attrs.role, "status");
   assert.equal(appended[0].attrs["aria-live"], "polite");
 });
+
+// --- proxy lookup path -------------------------------------------------
+// The markerchange handler with a proxyUrl fetches the nearest address and
+// prefers its grid reference, falling back to the raw (clicked) one.
+
+const RAW = TQ; // grid ref of the clicked point itself
+const NEAREST = "TQ 30200 80600"; // grid ref the proxy's nearest address maps to
+
+function settle() { return new Promise((resolve) => setTimeout(resolve, 0)); }
+
+test("proxy lookup sets the field to the nearest address's grid reference", async () => {
+  const map = fakeMap();
+  const field = fakeField();
+  global.fetch = () => Promise.resolve({
+    json: () => Promise.resolve({ results: [{ DPA: { X_COORDINATE: 530200, Y_COORDINATE: 180600 } }] })
+  });
+  try {
+    wireGridRefSync(map, field, "/proxy");
+    // Emit twice: the first request is aborted and its stale response must
+    // not overwrite the field (covers the shared-controller guard).
+    map.emit("interact:markerchange", { coords: TQ_POINT });
+    map.emit("interact:markerchange", { coords: TQ_POINT });
+    await settle();
+    await settle();
+  } finally {
+    delete global.fetch;
+  }
+
+  assert.equal(field.value, NEAREST);
+});
+
+test("proxy lookup falls back to the raw grid reference on an empty result", async () => {
+  const map = fakeMap();
+  const field = fakeField();
+  global.fetch = () => Promise.resolve({ json: () => Promise.resolve({ results: [] }) });
+  try {
+    wireGridRefSync(map, field, "/proxy");
+    map.emit("interact:markerchange", { coords: TQ_POINT });
+    await settle();
+    await settle();
+  } finally {
+    delete global.fetch;
+  }
+
+  assert.equal(field.value, RAW);
+});
+
+test("proxy lookup falls back to the raw grid reference when the fetch fails", async () => {
+  const map = fakeMap();
+  const field = fakeField();
+  global.fetch = () => Promise.reject(new Error("network down"));
+  try {
+    wireGridRefSync(map, field, "/proxy");
+    map.emit("interact:markerchange", { coords: TQ_POINT });
+    await settle();
+    await settle();
+  } finally {
+    delete global.fetch;
+  }
+
+  assert.equal(field.value, RAW);
+});
+
+test("proxy lookup falls back to the raw grid reference on timeout", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const map = fakeMap();
+  const field = fakeField();
+  global.fetch = () => new Promise(() => {}); // never resolves
+  try {
+    wireGridRefSync(map, field, "/proxy");
+    map.emit("interact:markerchange", { coords: TQ_POINT });
+    t.mock.timers.tick(2000);
+  } finally {
+    delete global.fetch;
+  }
+
+  assert.equal(field.value, RAW);
+});
+
+// --- typed grid reference path ------------------------------------------
+
+test("typing a valid grid ref repins the marker and flies the map", () => {
+  const map = fakeMap();
+  const field = fakeField();
+  let inputHandler;
+  field.addEventListener = (evt, cb) => { inputHandler = cb; };
+  const flown = [];
+  wireGridRefSync(map, field, null, 15);
+
+  field.value = TQ;
+  inputHandler(); // before map:ready there is no map instance: no-op
+  assert.equal(map.added.length, 0);
+
+  map.emit("map:ready", { map: { flyTo(opts) { flown.push(opts); } } });
+  field.value = "not a grid ref";
+  inputHandler(); // invalid value: no-op
+  assert.equal(map.added.length, 0);
+
+  field.value = TQ;
+  inputHandler();
+  assert.equal(map.added.length, 1);
+  assert.equal(map.added[0].id, "grid-ref-pin");
+  assert.ok(map.removed.includes("search"));
+  assert.ok(map.removed.includes("location"));
+  assert.deepEqual(flown, [{ center: TQ_POINT, zoom: 15 }]);
+});

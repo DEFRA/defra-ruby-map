@@ -185,7 +185,7 @@
   function buildMapOptions(config, osMapStyles, plugins, options) {
     return {
       behaviour: "inline",
-      mapProvider: defra.maplibreProvider(),
+      mapProvider: window.defra.maplibreProvider(),
       plugins: plugins,
       transformRequest: makeTransformRequest(config.proxyUrl, config.stylesUrl),
       mapStyle: osMapStyles ? osMapStyles[0] : OPENFREEMAP_STYLE,

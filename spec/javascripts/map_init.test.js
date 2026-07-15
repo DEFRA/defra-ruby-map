@@ -54,7 +54,7 @@ test("DefraMap.init returns the map instance mounted on a dedicated child elemen
   const appended = [];
   const container = {
     id: "map",
-    getAttribute() { return null; },
+    dataset: {},
     classList: { remove() {} },
     querySelectorAll() { return []; },
     appendChild(el) { appended.push(el); }

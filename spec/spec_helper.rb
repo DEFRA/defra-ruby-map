@@ -2,7 +2,7 @@
 
 # Require and run our simplecov initializer as the very first thing we do.
 # This is as per its docs https://github.com/simplecov-ruby/simplecov#getting-started
-require "./spec/support/simplecov"
+require_relative "support/simplecov"
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

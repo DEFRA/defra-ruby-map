@@ -1,5 +1,7 @@
 # DefraRubyMap
 
+[![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=DEFRA_defra-ruby-map&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=DEFRA_defra-ruby-map)
+
 Rails engine gem providing the [DEFRA Interactive Map](https://defra.github.io/interactive-map/) component for GOV.UK services, with OS grid reference conversion, bidirectional field sync, and a server-side proxy that keeps the OS API key out of the browser.
 
 ## Contents

@@ -123,7 +123,7 @@
     const searchConfig = {
       showMarker: true,
       manifest: {
-        controls: [{
+        buttons: [{
           id: "search",
           mobile: { slot: "top-right", showLabel: true },
           tablet: { slot: "top-left", showLabel: true },

@@ -153,6 +153,10 @@ test("a fully-configured container gets OS styles, search dataset, and proxied r
   assert.equal(options.plugins.length, 4); // interact, search, scale bar, map styles
   // Search plugin gets the OS Places dataset when a proxy is configured
   assert.equal(captured.searchConfig.customDatasets[0].urlTemplate, "/proxy/geocode-proxy?query={query}");
+  // The "Search" label override targets the manifest button, not the form control
+  const searchButton = captured.searchConfig.manifest.buttons.find((b) => b.id === "search");
+  assert.equal(searchButton.desktop.showLabel, true);
+  assert.equal(captured.searchConfig.manifest.controls, undefined);
 
   // transformRequest: OS sprite URLs reroute to the vendored copies
   const sprite = options.transformRequest(

@@ -21,6 +21,19 @@ RSpec.describe "Geocode proxy", type: :request do
       expect(stub).to have_been_requested.once
     end
 
+    it "strips the API key if upstream echoes it in the response body" do
+      stub_request(:get, "https://api.os.uk/search/places/v1/find")
+        .with(query: hash_including("key" => api_key))
+        .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: {
+          header: { uri: "https://api.os.uk/search/places/v1/find?query=x&key=#{api_key}" }, results: []
+        }.to_json)
+
+      get "/map/geocode-proxy", params: { query: "x" }
+
+      expect(response.body).not_to include(api_key)
+      expect(response.parsed_body.dig("header", "uri")).to eq("https://api.os.uk/search/places/v1/find?query=x")
+    end
+
     it "passes upstream error statuses through" do
       stub_request(:get, "https://api.os.uk/search/places/v1/find")
         .with(query: hash_including("key" => api_key))

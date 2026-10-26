@@ -77,8 +77,19 @@ module DefraRubyMap
         headers["ETag"] = response["ETag"] if response["ETag"]
         headers["Expires"] = response["Expires"] if response["Expires"]
       end
-      render body: response.body, status: status_code,
+      render body: scrub_api_key(response.body), status: status_code,
              content_type: response["Content-Type"] || "application/octet-stream"
+    end
+
+    # OS echoes the key back in relayed bodies (e.g. the VTS "tiles" URLs and the style's
+    # sprite/glyphs/source URLs). Drop the key param so the browser never sees it
+    def scrub_api_key(body)
+      return body if body.blank? || body.exclude?(os_maps_api_key)
+
+      escaped_key = Regexp.escape(os_maps_api_key)
+      body.gsub(/(\?|&|\\u0026)key=#{escaped_key}((?:&|\\u0026)?)/) do
+        Regexp.last_match(2).empty? ? "" : Regexp.last_match(1)
+      end.gsub(os_maps_api_key, "")
     end
 
     def proxy_get(base_url, params)
@@ -86,7 +97,7 @@ module DefraRubyMap
       uri.query = URI.encode_www_form(params)
 
       response = fetch_upstream(uri)
-      render(json: response.body, status: response.code.to_i)
+      render(json: scrub_api_key(response.body), status: response.code.to_i)
     rescue StandardError => e
       Rails.logger.error("[DefraRubyMap] #{action_name} upstream error: #{e.class}: #{e.message}")
       render(json: { error: "upstream service unavailable" }, status: :bad_gateway)

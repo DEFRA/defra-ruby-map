@@ -100,6 +100,49 @@ RSpec.describe "OS tiles proxy", type: :request do
         expect(response.headers["Cache-Control"]).to include("public").and include("max-age=86400")
       end
 
+      it "strips the API key from the VTS root tiles URLs" do
+        stub_request(:get, "https://api.os.uk/maps/vector/v1/vts")
+          .with(query: { "srs" => "3857", "key" => api_key })
+          .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: {
+            tiles: ["https://api.os.uk/maps/vector/v1/vts/tile/{z}/{y}/{x}.pbf?srs=3857&key=#{api_key}"]
+          }.to_json)
+
+        get "/map/os-tiles-proxy/maps/vector/v1/vts", params: { srs: "3857" }
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).not_to include(api_key)
+        expect(response.parsed_body["tiles"])
+          .to eq(["https://api.os.uk/maps/vector/v1/vts/tile/{z}/{y}/{x}.pbf?srs=3857"])
+      end
+
+      it "strips the API key from style sprite, glyphs and source URLs" do
+        stub_request(:get, "https://api.os.uk/maps/vector/v1/vts/resources/styles")
+          .with(query: { "key" => api_key })
+          .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: {
+            sprite: "https://api.os.uk/maps/vector/v1/vts/resources/sprites/sprite?key=#{api_key}",
+            glyphs: "https://api.os.uk/maps/vector/v1/vts/resources/fonts/{fontstack}/{range}.pbf?key=#{api_key}",
+            sources: { esritto: { type: "vector", url: "https://api.os.uk/maps/vector/v1/vts?key=#{api_key}&srs=3857" } }
+          }.to_json)
+
+        get "/map/os-tiles-proxy/maps/vector/v1/vts/resources/styles"
+
+        body = response.parsed_body
+        expect(response.body).not_to include(api_key)
+        expect(body["sprite"]).to eq("https://api.os.uk/maps/vector/v1/vts/resources/sprites/sprite")
+        expect(body["glyphs"]).to eq("https://api.os.uk/maps/vector/v1/vts/resources/fonts/{fontstack}/{range}.pbf")
+        expect(body.dig("sources", "esritto", "url")).to eq("https://api.os.uk/maps/vector/v1/vts?srs=3857")
+      end
+
+      it "never relays the API key even outside a key= query param" do
+        stub_request(:get, "https://api.os.uk/maps/vector/v1/vts")
+          .with(query: { "key" => api_key })
+          .to_return(status: 200, body: %({"note":"key\\u003d#{api_key}"}))
+
+        get "/map/os-tiles-proxy/maps/vector/v1/vts"
+
+        expect(response.body).not_to include(api_key)
+      end
+
       it "returns 502 with a generic body when upstream times out" do
         stub_request(:get, "https://api.os.uk/maps/vector/v1/vts")
           .with(query: { "key" => api_key })

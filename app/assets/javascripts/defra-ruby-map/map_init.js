@@ -30,30 +30,23 @@
     backgroundColor: "#f5f5f0"
   };
 
-  const HTML_ENTITIES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" };
-  function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, function (c) { return HTML_ENTITIES[c]; });
-  }
-
-  // Maps OS Places API results to the search plugin's suggestion shape. The
-  // plugin renders `marked` via dangerouslySetInnerHTML, so the address text
-  // is HTML-escaped before the matched query is wrapped in <mark> — otherwise
-  // HTML in an OS address would execute (stored XSS).
+  // Maps OS Places API results to the search plugin's suggestion shape. Since
+  // v0.0.56 the plugin renders `marked` as text (only bare <mark> tags become
+  // elements), so the address must not be HTML-escaped or entities would show.
   function parseOsPlacesResults(data, query) {
     if (!data?.results) { return []; }
-    const safeQuery = escapeHtml(query || "").replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-    const matcher = safeQuery ? new RegExp(`(${safeQuery})`, "gi") : null;
+    const queryPattern = (query || "").replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+    const matcher = queryPattern ? new RegExp(`(${queryPattern})`, "gi") : null;
     return data.results.map(function (item) {
       const record = item.DPA || item.LPI;
       if (!record) { return null; }
       const text = record.ADDRESS || "";
-      const safeText = escapeHtml(text);
       const lng = record.LNG || 0;
       const lat = record.LAT || 0;
       return {
         id: String(record.UPRN),
         text: text,
-        marked: matcher ? safeText.replace(matcher, "<mark>$1</mark>") : safeText,
+        marked: matcher ? text.replace(matcher, "<mark>$1</mark>") : text,
         point: [lng, lat],
         bounds: [
           lng - SUGGESTION_BOUNDS_PADDING,
@@ -270,6 +263,6 @@
 
   window.DefraMap = {
     init: initMap,
-    _internal: { escapeHtml: escapeHtml, parseOsPlacesResults: parseOsPlacesResults }
+    _internal: { parseOsPlacesResults: parseOsPlacesResults }
   };
 })();

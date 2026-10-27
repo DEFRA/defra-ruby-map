@@ -9,6 +9,6 @@
   },
   "dependencies": {
     "@defra/interactive-map": "^0.0.56-alpha",
-    "proj4": "^2.12.1"
+    "proj4": "^2.22.0"
   }
 }

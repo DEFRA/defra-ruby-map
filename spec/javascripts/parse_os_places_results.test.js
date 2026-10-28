@@ -1,6 +1,6 @@
-// Tests for map_init.js's OS Places result parsing / HTML escaping (the XSS
-// mitigation). map_init.js is a browser IIFE that attaches to window.DefraMap;
-// give it a window and no `defra` global so init is never called.
+// Tests for map_init.js's OS Places result parsing. map_init.js is a browser
+// IIFE that attaches to window.DefraMap; give it a window and no `defra`
+// global so init is never called.
 "use strict";
 
 const test = require("node:test");
@@ -10,25 +10,17 @@ const path = require("path");
 global.window = global;
 require(path.join(__dirname, "..", "..", "app", "assets", "javascripts", "defra-ruby-map", "map_init.js"));
 
-const { escapeHtml, parseOsPlacesResults } = global.DefraMap._internal;
+const { parseOsPlacesResults } = global.DefraMap._internal;
 
 function results(address) {
   return { results: [{ DPA: { ADDRESS: address, UPRN: 123, LNG: -1, LAT: 51 } }] };
 }
 
-test("escapeHtml neutralises the five HTML-significant characters", () => {
-  assert.equal(escapeHtml('<img src=x onerror="alert(1)">'), "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
-  assert.equal(escapeHtml("Tom & Jerry's"), "Tom &amp; Jerry&#39;s");
-});
-
-test("parseOsPlacesResults escapes HTML in the address before wrapping matches", () => {
-  const parsed = parseOsPlacesResults(results('<script>alert(1)</script> HOUSE'), "house");
-  assert.equal(parsed.length, 1);
-  // No live tag survives; the injected script is inert entities
-  assert.ok(!/<script>/i.test(parsed[0].marked), "raw <script> must not appear in marked");
-  assert.ok(parsed[0].marked.indexOf("&lt;script&gt;") === 0, "script tag is escaped");
-  // The only markup is the <mark> we add around the matched query
-  assert.ok(parsed[0].marked.includes("<mark>HOUSE</mark>"), "matched query is highlighted");
+// The search plugin renders `marked` as text (only bare <mark> tags become
+// elements), so the address must be passed through unescaped
+test("parseOsPlacesResults does not HTML-escape the address", () => {
+  const parsed = parseOsPlacesResults(results("SMITH & SONS, O'BRIEN HOUSE"), "house");
+  assert.equal(parsed[0].marked, "SMITH & SONS, O'BRIEN <mark>HOUSE</mark>");
 });
 
 test("parseOsPlacesResults still highlights a plain query match", () => {

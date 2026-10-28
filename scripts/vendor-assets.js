@@ -76,23 +76,23 @@ copyFiles(
 );
 copyCss(path.join(IM_ROOT, "plugins", "search", "dist", "css", "index.css"), "search-plugin.css");
 
-// Map styles plugin (moved to plugins/beta/ in v0.0.30)
+// Map styles plugin (out of plugins/beta/ since v0.0.56)
 console.log("\nmap-styles-plugin:");
 copyFiles(
-  path.join(IM_ROOT, "plugins", "beta", "map-styles", "dist", "umd"),
+  path.join(IM_ROOT, "plugins", "map-styles", "dist", "umd"),
   path.join(JS_DEST, "map-styles-plugin"),
   /\.js(\.LICENSE\.txt)?$/
 );
-copyCss(path.join(IM_ROOT, "plugins", "beta", "map-styles", "dist", "css", "index.css"), "map-styles-plugin.css");
+copyCss(path.join(IM_ROOT, "plugins", "map-styles", "dist", "css", "index.css"), "map-styles-plugin.css");
 
-// Scale bar plugin (moved to plugins/beta/ in v0.0.30)
+// Scale bar plugin (out of plugins/beta/ since v0.0.56)
 console.log("\nscale-bar-plugin:");
 copyFiles(
-  path.join(IM_ROOT, "plugins", "beta", "scale-bar", "dist", "umd"),
+  path.join(IM_ROOT, "plugins", "scale-bar", "dist", "umd"),
   path.join(JS_DEST, "scale-bar-plugin"),
   /\.js(\.LICENSE\.txt)?$/
 );
-copyCss(path.join(IM_ROOT, "plugins", "beta", "scale-bar", "dist", "css", "index.css"), "scale-bar-plugin.css");
+copyCss(path.join(IM_ROOT, "plugins", "scale-bar", "dist", "css", "index.css"), "scale-bar-plugin.css");
 
 // Map images and OS logos
 console.log("\nmap images:");
